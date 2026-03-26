@@ -1,0 +1,42 @@
+# [IDE 및 OS]
+.vs/
+.vscode/
+*.sln
+*.suo
+*.xcworkspace
+*.xcodeproj
+*.VC.db
+*.VC.opendb
+
+# [임시 및 자동 생성 폴더 - 반드시 제외]
+Binaries/
+Build/
+DerivedDataCache/
+Intermediate/
+Saved/
+
+# [플러그인 관련 임시 파일]
+Plugins/**/Binaries/
+Plugins/**/Intermediate/
+
+# [기타 이진 파일]
+*.obj
+*.exe
+*.dll
+*.lib
+*.pdb
+
+# 모든 콘텐츠 폴더
+Content/*
+
+# 커스텀 된 콘텐츠 폴더 제외
+!Content/00_Project/
+!Content/00_Project/**
+
+# 맵 파일(Level)은 보통 용량이 크지만 필수이므로 포함
+!Content/*.umap
+
+# [콘텐츠 관련]
+# BuiltData는 팀 규모와 라이팅 워크플로우에 따라 선택하세요.
+# 협업자가 라이트를 다시 굽지 않게 하려면 주석 처리해서 포함시킵니다.
+# *_BuiltData.uasset
