@@ -1,6 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Damageable.h"
 
-// Add default functionality here for any IDamageable functions that are not pure virtual.
+//실제 로직은 이 인터페이스를 상속받는 클래스에서 구현
