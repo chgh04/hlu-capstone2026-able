@@ -1,29 +1,39 @@
 #include "HealthComponent.h"
+#include "Damageable.h" 
 
 UHealthComponent::UHealthComponent()
 {
-    PrimaryComponentTick.bCanEverTick = false; // 매 프레임 필요 없음
+    PrimaryComponentTick.bCanEverTick = false;
 }
 
 void UHealthComponent::BeginPlay()
 {
     Super::BeginPlay();
-    CurrentHealth = MaxHealth; // 시작 시 최대 체력으로 초기화
+
+    // 게임 시작 시 현재 체력을 최대 체력으로 초기화
+    CurrentHealth = MaxHealth;
 }
 
 void UHealthComponent::ReduceHealth(float Amount)
 {
-    // 이미 죽었으면 무시
+    // 이미 사망했거나 데미지가 0 이하인 경우
     if (bIsDead || Amount <= 0.f) return;
 
+    // 체력 감소 - 0 미만으로 내려가지 않도록 Clamp 처리
     CurrentHealth = FMath::Clamp(CurrentHealth - Amount, 0.f, MaxHealth);
 
-    // UI 등에 알림
-    OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
-
+    // 체력이 0이 되면 사망 처리
     if (CurrentHealth <= 0.f)
     {
+        // 중복 사망 방지 플래그
         bIsDead = true;
-        OnDie.Broadcast();
+
+        // 오너 액터가 IDamageable을 구현하고 있는지 확인 후 OnDeath 호출
+        // 인터페이스로 직접 호출
+        AActor* Owner = GetOwner();
+        if (Owner && Owner->Implements<UDamageable>())
+        {
+            IDamageable::Execute_OnDeath(Owner);
+        }
     }
 }
