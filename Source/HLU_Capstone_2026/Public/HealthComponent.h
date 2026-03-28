@@ -28,11 +28,32 @@ MaxHealth는 블루프린트 디테일 패널에서 조정 가능(EditAnywhere).
 적마다 체력을 다르게 주려면 상속받은 BP에서 값을 바꾸면 됨.
 */
 
+// 델리게이트 선언 -------------------
+// 체력이 변경될 때 (현재 체력, 최대 체력 전달)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedSignature, float, CurrentHealth, float, MaxHealth);
+
+// 사망했을 때
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeathSignature);
+
+
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class HLU_CAPSTONE_2026_API UHealthComponent : public UActorComponent
 {
     GENERATED_BODY()
 
+protected:
+    virtual void BeginPlay() override;
+
+// 추후 UI 업데이트용 델리게이트 변수 선언  -------------------
+public:
+    // UI에서 이 이벤트를 바인딩할 수 있게 public 설정
+    UPROPERTY(BlueprintAssignable, Category = "HP_Events")
+    FOnHealthChangedSignature OnHealthChanged;
+
+    UPROPERTY(BlueprintAssignable, Category = "HP_Events")
+    FOnDeathSignature OnDeath;
+
+// 체력 관련 함수 및 변수 -------------------
 public:
     UHealthComponent();
 
@@ -59,9 +80,6 @@ public:
     // 사망 여부 반환 - 사망 시 true
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Health")
     bool IsDead() const { return bIsDead; }
-
-protected:
-    virtual void BeginPlay() override;
 
 private:
     // 최대 체력 - 블루프린트 디테일 패널에서 적마다 조정 가능

@@ -12,6 +12,9 @@ void UHealthComponent::BeginPlay()
 
     // 게임 시작 시 현재 체력을 최대 체력으로 초기화
     CurrentHealth = MaxHealth;
+
+    // UI에게 체력 알림
+    OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
 }
 
 void UHealthComponent::ReduceHealth(float Amount)
@@ -21,6 +24,9 @@ void UHealthComponent::ReduceHealth(float Amount)
 
     // 체력 감소 - 0 미만으로 내려가지 않도록 Clamp 처리
     CurrentHealth = FMath::Clamp(CurrentHealth - Amount, 0.f, MaxHealth);
+
+    // 델리게이트를 통해 체력 변경 알림 (UI 갱신용)
+    OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
 
     // 체력이 0이 되면 사망 처리
     if (CurrentHealth <= 0.f)
