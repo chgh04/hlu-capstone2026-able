@@ -17,16 +17,19 @@ void UHealthComponent::BeginPlay()
     OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
 }
 
-void UHealthComponent::ReduceHealth(float Amount)
+void UHealthComponent::ReduceHealth(const FDamageData& DamageData)
 {
     // 이미 사망했거나 데미지가 0 이하인 경우
-    if (bIsDead || Amount <= 0.f) return;
+    if (bIsDead || DamageData.DamageAmount <= 0.f) return;
 
     // 체력 감소 - 0 미만으로 내려가지 않도록 Clamp 처리
-    CurrentHealth = FMath::Clamp(CurrentHealth - Amount, 0.f, MaxHealth);
+    CurrentHealth = FMath::Clamp(CurrentHealth - DamageData.DamageAmount, 0.f, MaxHealth);
 
     // 델리게이트를 통해 체력 변경 알림 (UI 갱신용)
     OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
+
+    // 델리게이트를 통해 피해정보 전달
+    OnTakeDamage.Broadcast(DamageData);
 
     // 체력이 0이 되면 사망 처리
     if (CurrentHealth <= 0.f)

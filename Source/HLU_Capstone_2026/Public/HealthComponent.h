@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Project_Types.h"
 #include "HealthComponent.generated.h"
 
 /*
@@ -29,11 +30,14 @@ MaxHealth는 블루프린트 디테일 패널에서 조정 가능(EditAnywhere).
 */
 
 // 델리게이트 선언 -------------------
-// 체력이 변경될 때 (현재 체력, 최대 체력 전달)
+// 체력이 변경될 때 UI갱신용 델리게이트 선언 (현재 체력, 최대 체력 전달)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedSignature, float, CurrentHealth, float, MaxHealth);
 
-// 사망했을 때
+// 사망했을 때 UI갱신용 델리게이트 선언
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeathSignature);
+
+// 피해를 받았을 때 피해 정보를 피해자에게 전달 (Actor별 피해 방식을 다르게 하기 위함)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTakeDamageSignature, const FDamageData&, DamageData);
 
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
@@ -41,25 +45,28 @@ class HLU_CAPSTONE_2026_API UHealthComponent : public UActorComponent
 {
     GENERATED_BODY()
 
+public:
+    UHealthComponent();
+
 protected:
     virtual void BeginPlay() override;
 
 // 추후 UI 업데이트용 델리게이트 변수 선언  -------------------
 public:
     // UI에서 이 이벤트를 바인딩할 수 있게 public 설정
-    UPROPERTY(BlueprintAssignable, Category = "HP_Events")
+    UPROPERTY(BlueprintAssignable, Category = "Damage_Events")
     FOnHealthChangedSignature OnHealthChanged;
 
-    UPROPERTY(BlueprintAssignable, Category = "HP_Events")
+    UPROPERTY(BlueprintAssignable, Category = "Damage_Events")
     FOnDeathSignature OnDeath;
+
+    FOnTakeDamageSignature OnTakeDamage;
 
 // 체력 관련 함수 및 변수 -------------------
 public:
-    UHealthComponent();
-
     //ReduceHealth - 체력 감소 함수 IDamageable::ReceiveDamage_Implementation 내부에서 호출. 체력이 0이 되면 bIsDead = true 후 오너의 OnDeath 호출
     UFUNCTION(BlueprintCallable, Category = "Health")
-    void ReduceHealth(float Amount); 
+    void ReduceHealth(const FDamageData& DamageData);
 
     // 현재 체력 반환 - UI나 AI에서 참조용
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Health")

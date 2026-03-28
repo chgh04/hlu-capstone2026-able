@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
+#include "Project_Types.h"
 #include "Damageable.generated.h"
 
 /*
@@ -25,22 +26,7 @@ TakeDamage 호출에서 ReceiveDamage를 거쳐 HealthComponent의 ReduceHealth로 이어지
 파라미터 변경 시 BaseEnemy, BasePlayer 등을 전부 수정
 */
 
-// 공격 정보에 대한 구조체 정의
-USTRUCT(BlueprintType)
-struct FDamageData
-{
-    GENERATED_BODY()
 
-    UPROPERTY(BlueprintReadWrite)
-    float DamageAmount = 0.f;
-
-    UPROPERTY(BlueprintReadWrite)
-    AActor* DamageCauser = nullptr;
-
-    // 넉백 처리를 위해 필요
-    UPROPERTY(BlueprintReadWrite)
-    FVector HitDirection = FVector::ZeroVector; 
-};
 
 UINTERFACE(MinimalAPI, Blueprintable)
 class UDamageable : public UInterface
