@@ -3,6 +3,7 @@
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
 
+
 ADefaultCharBase::ADefaultCharBase()
 {
     // 체력 컴포넌트 생성 및 부착
@@ -25,7 +26,7 @@ void ADefaultCharBase::BeginPlay()
     // 델리게이트 바인딩(HealthComponent의 FOnTakeDamageSignature와 바인딩 하여 피격 정보를 받음)
     if (HealthComponent)
     {
-        //HealthComponent->OnTakeDamage.AddDynamic(this, &ADefaultCharBase::PlayKnockback);
+        HealthComponent->OnTakeDamage.AddDynamic(this, &ADefaultCharBase::PlayKnockBack);
     }
 }
 
@@ -43,16 +44,17 @@ void ADefaultCharBase::ReceiveDamage_Implementation(const FDamageData& DamageDat
 void ADefaultCharBase::OnDeath_Implementation()
 {
     // 블루프린트에서 override해서 사망 애니메이션, 이펙트, 아이템 드롭 후 Destroy 
-    Destroy();
+    //Destroy();
+    UE_LOG(LogTemp, Warning, TEXT("Character OnDeath"));
 }
 
 float ADefaultCharBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-    Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+    float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
     // 인터페이스 전달을 위한 구조체 선언 및 초기화
     FDamageData Data;
-    Data.DamageAmount = DamageAmount;
+    Data.DamageAmount = ActualDamage;
     Data.DamageCauser = DamageCauser;
     Data.HitDirection = (GetActorLocation() - DamageCauser->GetActorLocation()).GetSafeNormal();
 
@@ -62,7 +64,13 @@ float ADefaultCharBase::TakeDamage(float DamageAmount, FDamageEvent const& Damag
         IDamageable::Execute_ReceiveDamage(this, Data);
     }
 
-    return DamageAmount;
+    return ActualDamage;
+}
+
+void ADefaultCharBase::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const
+{
+    // 내 주머니에 있는 모든 태그를 외부(TagContainer)로 복사해줌
+    TagContainer = CharacterTags;
 }
 
 void ADefaultCharBase::Attack_Implementation()
@@ -72,28 +80,46 @@ void ADefaultCharBase::Attack_Implementation()
     // 공격 애니메이션 재생, AttackBox 활성화 타이밍 조정 등
 }
 
-void ADefaultCharBase::OnAttackBoxOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
-    bool bFromSweep, const FHitResult& SweepResult)
+void ADefaultCharBase::StartAttackCollision()
 {
-    // 현재는 미구현
-    // BasePlayer 클래스 완성 후 아래처럼 데미지 적용 예정:
-    // ABasePlayer* Player = Cast<ABasePlayer>(OtherActor);
-    // if (Player) Player->ReceiveDamage(AttackDamage);
+    THitActors.Empty(); // 맞은 목록 초기화
+    AttackBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+}
 
-    /*
-    변경 가능한 점
-    현재는 AttackBox가 항상 활성화 상태.
-    공격 애니메이션 중에만 활성화하려면
-    블루프린트 애니메이션 노티파이로 활성화/비활성화 제어 추가.
-    */
+void ADefaultCharBase::EndAttackCollision()
+{
+    AttackBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+bool ADefaultCharBase::CanAttackTarget(AActor* Target) const
+{   
+    // 타겟이 없거나 자기 자신이면 공격 불가
+    if (!Target || Target == this) return false;
+
+    // 기본적으로 true 반환 (자식 클래스에서 구체화)
+    return true;
+}
+
+void ADefaultCharBase::OnAttackBoxOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{   
+    // OtherActor가 없거나, 본이이거나, 중복피격배열에 OtherActor가 있다면 미실행
+    if (OtherActor && OtherActor != this && !THitActors.Contains(OtherActor))
+    {
+        if (CanAttackTarget(OtherActor))
+        {
+            THitActors.Add(OtherActor);
+
+            // 적에게 피해 적용
+            UGameplayStatics::ApplyDamage(OtherActor, DefaultDamage, GetController(), this, UDamageType::StaticClass());
+        }
+    }
+
 }
 
 void ADefaultCharBase::SetDefaultDamage(float Amount)
 {
     DefaultDamage = Amount;
 }
-
 
 void ADefaultCharBase::PlayKnockBack(const FDamageData& DamageData)
 {

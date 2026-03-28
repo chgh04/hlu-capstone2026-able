@@ -73,6 +73,9 @@ protected:
     // 상속받은 Attack_Implemetation 함수 구현
     virtual void Attack_Implementation() override;
 
+    // 공격 대상을 구분하는 함수(플레이어) 구체화
+    virtual bool CanAttackTarget(AActor* Target) const;
+
     // 플레이어 감지 관련 함수/변수 -------------------
     // 플레이어 감지 함수 (1초마다 실행) DetectionRadius 안에 플레이어가 있으면 TargetPlayer에 저장. 범위 밖이면 nullptr로 초기화.
     UFUNCTION()

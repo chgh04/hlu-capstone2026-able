@@ -3,6 +3,7 @@
 #include "Components/BoxComponent.h"
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "BlueprintGameplayTagLibrary.h"
 
 AEnemyBase::AEnemyBase()
 {
@@ -37,6 +38,26 @@ void AEnemyBase::Attack_Implementation()
     UE_LOG(LogTemp, Warning, TEXT("Enemy is now attack"));
 }
 
+bool AEnemyBase::CanAttackTarget(AActor* Target) const
+{   
+    // 부모의 기본 체크(자기 자신 등)를 먼저 통과해야 함
+    if (!Super::CanAttackTarget(Target)) return false;
+
+    // 타겟의 태그 인터페이스를 불러오기
+    IGameplayTagAssetInterface* TagInterface = Cast<IGameplayTagAssetInterface>(Target);
+
+    // 태그 인터페이스가 없다면 false 
+    if (!TagInterface)
+    {
+        return false;
+    }
+
+    FGameplayTag PlayerTag = FGameplayTag::RequestGameplayTag(FName("Entity.Team.Player"));
+
+    // "Player" 태그를 가진 대상만 공격
+    return TagInterface->HasMatchingGameplayTag(PlayerTag);
+}
+
 void AEnemyBase::DetectPlayer()
 {
     // 플레이어 인덱스 0번 폰 가져오기 
@@ -49,7 +70,6 @@ void AEnemyBase::DetectPlayer()
     // 감지 반경 안에 있으면 저장, 밖이면 nullptr
     TargetPlayer = (Distance <= DetectionRadius) ? PlayerPawn : nullptr;
 }
-
 
 void AEnemyBase::OnDeath_Implementation()
 {

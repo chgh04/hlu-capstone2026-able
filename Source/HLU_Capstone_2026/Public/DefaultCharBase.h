@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "PaperZDCharacter.h"
 #include "Damageable.h"
+#include "GameplayTagAssetInterface.h"
+#include "GameplayTagContainer.h"
 #include "DefaultCharBase.generated.h"
 
 class UHealthComponent;
@@ -12,7 +14,7 @@ class UBoxComponent;
  * 
  */
 UCLASS()
-class HLU_CAPSTONE_2026_API ADefaultCharBase : public APaperZDCharacter, public IDamageable
+class HLU_CAPSTONE_2026_API ADefaultCharBase : public APaperZDCharacter, public IDamageable, public IGameplayTagAssetInterface
 {
 	GENERATED_BODY()
 	
@@ -33,6 +35,13 @@ public:
 	// IDamageable::ReceiveDamage로 연결. 외부에서 ApplyDamage 호출 시 이 함수가 자동으로 실행됨.
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
+	// 태그가 저장되는 변수 **** 디테일창에서 태그 바꾸면 됨!!! ****
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	FGameplayTagContainer CharacterTags;
+
+	// 태그 (적, 플레이어) 구분을 위한 인터페이스 함수 오버라이드 
+	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override;
+
 // 컴포넌트 생성 -------------------
 protected:
 	// 체력 관리 컴포넌트 - VisibleAnywhere로 디테일 패널에서 확인 가능
@@ -48,6 +57,21 @@ protected:
 	// 공격 실행 시 호출되는 함수(미구현). C++에서는 빈 구현만 제공하고 블루프린트에서 override해서 사용.
 	UFUNCTION(BlueprintNativeEvent, Category = "Combat")
 	void Attack();
+
+	// 한 번 공격에 맞은 액터 목록 (중복방지)
+	UPROPERTY()
+	TArray<AActor*> THitActors;
+
+	// BoxOverlap 물리효과를 QueryOnly로 전환
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void StartAttackCollision();
+
+	// BoxOverlap 물리효과를 NoCollision으로 전환
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void EndAttackCollision();
+
+	// 공격 대상을 구분하는 함수(적/플레이어)
+	virtual bool CanAttackTarget(AActor* Target) const;
 
 	// 공격 박스 Overlap 이벤트, BasePlayer 클래스 완성 후 캐스팅해서 데미지 적용 예정.
 	UFUNCTION()

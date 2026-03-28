@@ -22,6 +22,10 @@ public:
 protected:
     virtual void BeginPlay() override;
     
+// 공격 기능 함수/변수 -------------------
     // 상속받은 Attack_Implemetation 함수 구현
     virtual void Attack_Implementation() override;
+
+    // 공격 대상을 구분하는 함수(적) 구체화
+    virtual bool CanAttackTarget(AActor* Target) const;
 };
