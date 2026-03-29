@@ -112,3 +112,20 @@ void APlayerBase::ResetCombo()
     ComboCount = 0;
     UE_LOG(LogTemp, Warning, TEXT("C++: Combo Reset(PlayerBase)"));
 }
+
+void APlayerBase::TryJump()
+{   
+    // 점프가 불가능한 상황에서는 점프 불가
+    if (bIsKnockBack)
+    {
+        return;
+    }
+    
+    Jump();
+}
+
+void APlayerBase::TryStopJumping()
+{   
+    // 점프 중단, 추후 별도 로직 추가 가능
+    StopJumping();
+}

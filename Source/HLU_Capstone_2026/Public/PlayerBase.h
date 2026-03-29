@@ -64,4 +64,16 @@ protected:
     // 공격 도중 버튼을 또 눌렀는지 판단, 애니메이션 노티파이와 함께 사용(AS_Player)
     UPROPERTY(BlueprintReadWrite, Category = "Combat")
     bool bSaveAttack = false; 
+// 플레이어 이동 관련 함수/변수
+protected:
+    // 점프 시도
+    UFUNCTION(BlueprintCallable, Category = "Player_Movement")
+    virtual void TryJump();
+
+    // 점프 중단(점프 버튼을 손에서 뗏을 때)
+    UFUNCTION(BlueprintCallable, Category = "Player_Movement")
+    virtual void TryStopJumping();
+
+    UPROPERTY(EditAnywhere, Category = "Player_Movement")
+    int32 MaxJumpCount = 1;
 };
