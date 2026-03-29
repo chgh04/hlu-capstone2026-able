@@ -21,8 +21,19 @@ public:
 
 protected:
     virtual void BeginPlay() override;
-    
+
+// 컴포넌트 생성 -------------------
+protected:
+    // 카메라 암
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<class USpringArmComponent> CameraString;
+
+    // 실제 카메라
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<class UCameraComponent> MainCamera;
+
 // 공격 기능 함수/변수 -------------------
+protected:
     // 상속받은 Attack_Implemetation 함수 구현
     virtual void Attack_Implementation() override;
 

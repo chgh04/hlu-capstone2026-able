@@ -1,10 +1,21 @@
 #include "PlayerBase.h"
 #include "BlueprintGameplayTagLibrary.h"
 #include "GameplayTagContainer.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "Camera/CameraComponent.h"
 
 APlayerBase::APlayerBase()
 {
+    // 카메라 암 생성 및 설정
+    CameraString = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
+    CameraString->SetupAttachment(RootComponent); // 캐릭터의 루트 부착
+    CameraString->TargetArmLength = 400.0f;       // 캐릭터와의 거리 설정(디테일창 변경 가능)
+    CameraString->bUsePawnControlRotation = true; // 컨트롤러 회전에 따라 암도 회전
 
+    // 카메라 생성
+    MainCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
+    MainCamera->SetupAttachment(CameraString, USpringArmComponent::SocketName);
+    MainCamera->bUsePawnControlRotation = false;
 }
 
 void APlayerBase::BeginPlay()
