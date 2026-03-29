@@ -34,9 +34,34 @@ protected:
 
 // 공격 기능 함수/변수 -------------------
 protected:
+    // 상속받은 TryAttack 오버라이드
+    virtual void TryAttack() override;
+    
     // 상속받은 Attack_Implemetation 함수 구현
     virtual void Attack_Implementation() override;
 
     // 공격 대상을 구분하는 함수(적) 구체화
     virtual bool CanAttackTarget(AActor* Target) const;
+
+// 플레이어 콤보 공격 관련 -------------------
+protected:
+    // 플레이어 콤보 연계가 가능하도록 전환 (ABP의 노티파이에서 호출함)
+    UFUNCTION(BlueprintCallable, Category = "Combat")
+    void CheckCombo();
+
+    // 플레이어의 공격 종료 신호 전달 함수 (ABP의 노티파이에서 호출함)
+    UFUNCTION(BlueprintCallable, Category = "Combat")
+    void ResetCombo();
+
+    // 현재 타수
+    UPROPERTY(BlueprintReadWrite, Category = "Combat")
+    int32 ComboCount = 0;
+
+    // 공격 연계 타이밍 이전의 연계 입력은 무시하기 위한 트리거
+    UPROPERTY(BlueprintReadWrite, Category = "Combat")
+    bool bIgnoreSaveAttack = true;
+
+    // 공격 도중 버튼을 또 눌렀는지 판단, 애니메이션 노티파이와 함께 사용(AS_Player)
+    UPROPERTY(BlueprintReadWrite, Category = "Combat")
+    bool bSaveAttack = false; 
 };

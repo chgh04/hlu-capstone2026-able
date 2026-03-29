@@ -73,11 +73,24 @@ void ADefaultCharBase::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer)
     TagContainer = CharacterTags;
 }
 
-void ADefaultCharBase::Attack_Implementation()
+void ADefaultCharBase::TryAttack()
 {
-    UE_LOG(LogTemp, Warning, TEXT("DefaultCharBase: Attack!"));
-    // 블루프린트에서 override해서 구현
-    // 공격 애니메이션 재생, AttackBox 활성화 타이밍 조정 등
+    // 상태검사, 공격 중 / 사망 / 넉백 / 피해무적상태(추후 추가 가능) 등등이라면 공격 불가
+    // Enemy 클래스는 그대로 사용 가능, Player클래스는 부모클래스를 사용하지 않고 재정의합니다. 
+    if (bIsAttacking || bIsKnockBack)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("C++: Attack Return"));
+        return;
+    }
+
+    //bIsAttacking = true;
+    Attack();
+}
+
+void ADefaultCharBase::Attack_Implementation()
+{   
+    // 공격 상태 진입, 기본 구현이라 자식에선 아마 실행 안할듯?
+    UE_LOG(LogTemp, Warning, TEXT("C++: Attack!(DefaultCharBase)"));
 }
 
 void ADefaultCharBase::StartAttackCollision()
@@ -89,6 +102,13 @@ void ADefaultCharBase::StartAttackCollision()
 void ADefaultCharBase::EndAttackCollision()
 {
     AttackBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void ADefaultCharBase::EndAttackState()
+{
+    bIsAttacking = false;
+
+    // 마찬가지로 BP에서 오버라이드 해 별도 필요 기능을 구현할 수 있음
 }
 
 bool ADefaultCharBase::CanAttackTarget(AActor* Target) const
@@ -123,8 +143,8 @@ void ADefaultCharBase::SetDefaultDamage(float Amount)
 
 void ADefaultCharBase::PlayKnockBack(const FDamageData& DamageData)
 {
-    // 넉백당하지 않는 상태라면(bIsKnockBack == false) 리턴
-    if (bIsKnockBack == false)
+    // 넉백당하지 않는 상태라면(bIsKnockBackImmune == true) 리턴
+    if (bIsKnockBackImmune == true)
     {
         return;
     }

@@ -54,7 +54,11 @@ protected:
 
 // 공격 기능 함수/변수 -------------------
 protected:
-	// 공격 실행 시 호출되는 함수(미구현). C++에서는 빈 구현만 제공하고 블루프린트에서 override해서 사용.
+	// 공격이 시작될 때, 공격이 가능한지 확인하는 함수, 호출될 때 공격이 가능하면 공격, 아닐경우 공격하지 않습니다. 자식 클래스에서 재정의 가능
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	virtual void TryAttack();
+
+	// 공격 실행 시 호출되는 이벤트
 	UFUNCTION(BlueprintNativeEvent, Category = "Combat")
 	void Attack();
 
@@ -62,15 +66,19 @@ protected:
 	UPROPERTY()
 	TArray<AActor*> THitActors;
 
-	// BoxOverlap 물리효과를 QueryOnly로 전환
+	// BoxOverlap 물리효과를 QueryOnly로 전환, 일반적으로 캐릭터 ABP의 노티파이에서 함수를 호출함
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void StartAttackCollision();
 
-	// BoxOverlap 물리효과를 NoCollision으로 전환
+	// BoxOverlap 물리효과를 NoCollision으로 전환, 일반덕으로 캐릭터 ABP의 노티파이에서 함수를 호출함
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void EndAttackCollision();
 
-	// 공격 대상을 구분하는 함수(적/플레이어)
+	// 공격 상태 종료
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void EndAttackState();
+
+	// 공격 대상을 구분하는 함수(적/플레이어), OnAttackBoxOverlap에서 호출됩니다. 
 	virtual bool CanAttackTarget(AActor* Target) const;
 
 	// 공격 박스 Overlap 이벤트, BasePlayer 클래스 완성 후 캐스팅해서 데미지 적용 예정.
@@ -87,10 +95,17 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void SetDefaultDamage(float Amount);
 
-private:
 	// 캐릭터 기본 공격력
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	float DefaultDamage = 1;
+
+	// 캐릭터가 공격 도중인지 판단
+	UPROPERTY(BlueprintReadWrite, Category = "Combat")
+	bool bIsAttacking = false;
+
+	// 캐릭터가 무적상태인지(피격 후 혹은 특정 패턴) 판단
+	UPROPERTY(BlueprintReadWrite, Category = "Combat")
+	bool bIsInvincible = false;
 
 // 넉백 관련 함수/변수 -------------------
 protected:
@@ -98,9 +113,12 @@ protected:
 	UFUNCTION()
 	void PlayKnockBack(const FDamageData& DamageData);
 
-	// 캐릭터가 넉백 되는지 아닌지 판단
+	// 캐릭터가 넉백중인지 아닌지 아닌지 판단
 	UPROPERTY(EditAnywhere, Category = "Combat")
-	bool bIsKnockBack = true;
+	bool bIsKnockBack = false;
+
+	// 캐릭터가 넉백에 면역인지 아닌지 판단
+	bool bIsKnockBackImmune = false;
 
 	// 캐릭터의 넉백 강도
 	UPROPERTY(EditAnywhere, Category = "Combat")
