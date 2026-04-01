@@ -107,12 +107,22 @@ protected:
 	UPROPERTY(BlueprintReadWrite, Category = "Combat")
 	bool bIsInvincible = false;
 
-	// 피격받을때의 호출 (C++ / 블루프린트 구현 - Attack처럼)
-	UFUNCTION(BlueprintNativeEvent, Category = "Combat")
-	void GetHit();
-
-// 넉백 관련 함수/변수 -------------------
+// 피해 관련 함수/변수 -------------------
 protected:
+	// 피격받을때 호출 (C++ / 블루프린트 구현 - Attack처럼)
+	UFUNCTION()
+	virtual void GetHit(const FDamageData& DamageData);
+
+	// 피격시 경직 시간 관리 핸들러
+	FTimerHandle HitStunTimerHandle;
+
+	// 피격시 경직되는 시간, 적은 경직 플레이어는 무적
+	float StunDuration = 0.5f;
+
+	// 피격 애니메이션 강제호출 함수(공격 함수를 덮기 위함, 넉백 면역 시 미호출) !!반드시 부모 BP가 아닌 가장 자식인 BP에서 구현해야 합니다!!
+	UFUNCTION(BlueprintImplementableEvent, Category = "Combat")
+	void PlayHitAnimation();
+
 	// 넉백 적용 함수
 	UFUNCTION()
 	void PlayKnockBack(const FDamageData& DamageData);

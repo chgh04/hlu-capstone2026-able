@@ -32,10 +32,11 @@ void ADefaultCharBase::BeginPlay()
     // 공격 박스 비활성화
     AttackBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-    // 델리게이트 바인딩(HealthComponent의 FOnTakeDamageSignature와 바인딩 하여 피격 정보를 받음)
+    // 델리게이트 바인딩
     if (HealthComponent)
-    {
-        HealthComponent->OnTakeDamage.AddDynamic(this, &ADefaultCharBase::PlayKnockBack);
+    {   
+        // HealthComponent의 FOnTakeDamageSignature와 바인딩 하여 피격 정보를 받음
+        HealthComponent->OnTakeDamage.AddDynamic(this, &ADefaultCharBase::GetHit);
     }
 }
 
@@ -150,20 +151,26 @@ void ADefaultCharBase::SetDefaultDamage(float Amount)
     DefaultDamage = Amount;
 }
 
-void ADefaultCharBase::GetHit_Implementation()
+void ADefaultCharBase::GetHit(const FDamageData& DamageData)
 {
-    // 피격 상태 진입, 기본 구현이라 자식에서 재정의해야함
+    // 피격 상태 진입
+    UE_LOG(LogTemp, Warning, TEXT("C++: Get Hit!(DefaultCharBase)"));
+
+    // 넉백에 면역이 아닌 경우에
+    if (!bIsKnockBackImmune)
+    {
+        // 넉백 실행
+        PlayKnockBack(DamageData);
+
+        // 피격 애니메이션 재생
+        PlayHitAnimation();
+    }
+
 }
 
 
 void ADefaultCharBase::PlayKnockBack(const FDamageData& DamageData)
 {
-    // 넉백당하지 않는 상태라면(bIsKnockBackImmune == true) 리턴
-    if (bIsKnockBackImmune == true)
-    {
-        return;
-    }
-
     FVector LaunchVelocity = DamageData.HitDirection * KnockbackStrength; // 넉백 강도
     LaunchVelocity.Z = 200.f; // 살짝 위로 뜨게 만듦
 

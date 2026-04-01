@@ -33,12 +33,8 @@ protected:
 
 // 인터페이스 구현 및 상속 -------------------
 public:
-
     // 부모 클래스에서 override
     virtual void OnDeath_Implementation() override;
-
-    // 부모 클래스에서 override, 상태신 업데이트를 위한 재정의
-    virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 // 컴포넌트 생성 -------------------
 protected:
@@ -48,14 +44,13 @@ protected:
 
 // Enemy 공격 기능 함수/변수 -------------------
 protected:
-    // 공격 기능 관련 함수-------------------
     // 상속받은 Attack_Implemetation 함수 구현
     virtual void Attack_Implementation() override;
 
     // 공격 대상을 구분하는 함수(플레이어) 구체화
     virtual bool CanAttackTarget(AActor* Target) const;
 
-    
+    virtual void GetHit(const FDamageData& DamageData) override;
 
     // 공격 사거리, TODO: Attack Overlap Box와 같은 사이즈로 전환
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
@@ -83,12 +78,17 @@ protected:
     UPROPERTY(EditAnywhere, Category = "Enemy_AI")
     float DetectionRadius = 500.f;
 
-    // SimpleFSM 사용시 적의 이동 코드
+// 상태머신(SFSM) 관련 함수/변수 -------------------
+protected:
+    // 상태머신 - SimpleFSM 사용시 적의 이동 코드
     void ChaseOnSimpleFSM();
 
-    // 공격 종료 및 공격중단 신호 반환
+    // 상태머신 - 공격 종료 및 공격중단 신호 반환
     UFUNCTION(BlueprintCallable, Category = "Combat")
     void CallAttackEndOnSimpleFSM();
+
+    // 상태머신 - 경직 종료 후 실행될 함수, 상태머신 최적화용
+    void ResetHitStateOnSimpleFSM();
 
 private:
     // AI 상태
