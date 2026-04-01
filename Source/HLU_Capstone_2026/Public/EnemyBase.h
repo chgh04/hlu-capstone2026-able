@@ -9,6 +9,16 @@ class UHealthComponent;
 class UBoxComponent;
 class USphereComponent;
 
+UENUM(BlueprintType)
+enum class EEnemyState : uint8
+{
+    Patrol      UMETA(DisplayName = "순찰"),
+    Chase       UMETA(DisplayName = "추격"),
+    Attack      UMETA(DisplayName = "공격"),
+    Hit         UMETA(DisplayName = "피격"),
+    Dead        UMETA(DisplayName = "사망")
+};
+
 UCLASS()
 class HLU_CAPSTONE_2026_API AEnemyBase : public ADefaultCharBase
 {
@@ -19,12 +29,16 @@ public:
 
 protected:
     virtual void BeginPlay() override;
+    virtual void Tick(float DeltaTime) override;
 
 // 인터페이스 구현 및 상속 -------------------
 public:
 
     // 부모 클래스에서 override
     virtual void OnDeath_Implementation() override;
+
+    // 부모 클래스에서 override, 상태신 업데이트를 위한 재정의
+    virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 // 컴포넌트 생성 -------------------
 protected:
@@ -41,20 +55,42 @@ protected:
     // 공격 대상을 구분하는 함수(플레이어) 구체화
     virtual bool CanAttackTarget(AActor* Target) const;
 
-// 플레이어 감지 관련 함수/변수 -------------------
-    // 플레이어 감지 함수 11111111DetectionRadius 안에 플레이어가 있으면 TargetPlayer에 저장. 범위 밖이면 nullptr로 초기화.
-    UFUNCTION()
-    void DetectPlayer();
+    
+
+    // 공격 사거리, TODO: Attack Overlap Box와 같은 사이즈로 전환
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+    float AttackRange = 100.0f;
+
+// 플레이어 감지(AI) 관련 함수/변수 -------------------
+protected:
+    // 코드구현 간단 FSM 사용 여부, 디테일 패널에서 끄고 켤 수 있음
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy_AI")
+    bool bUseSimpleFSM = true;
 
     // 감지된 플레이어 저장 - 블루프린트에서 이동 로직에 활용, nullptr: 감지 안된 상태
-    UPROPERTY(BlueprintReadOnly, Category = "Combat")
-    AActor* TargetPlayer;
+    UPROPERTY(BlueprintReadOnly, Category = "Enemy_AI")
+    class APlayerBase* TargetPlayer;
+
+    // Dectection Range 오버랩 시작 이벤트
+    UFUNCTION()
+    void OnDetectionBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+    // Dectection Range 오버랩 종료 이벤트
+    UFUNCTION()
+    void OnDetectionEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
     // 플레이어 감지 반경 - 블루프린트 디테일 패널에서 적마다 조정 가능
-    UPROPERTY(EditAnywhere, Category = "Combat")
+    UPROPERTY(EditAnywhere, Category = "Enemy_AI")
     float DetectionRadius = 500.f;
 
+    // SimpleFSM 사용시 적의 이동 코드
+    void ChaseOnSimpleFSM();
+
+    // 공격 종료 및 공격중단 신호 반환
+    UFUNCTION(BlueprintCallable, Category = "Combat")
+    void CallAttackEndOnSimpleFSM();
+
 private:
-    // 1초 감지 타이머 핸들 - ClearTimer 호출 시 필요
-    FTimerHandle DetectionTimerHandle;
+    // AI 상태
+    EEnemyState CurrentState;
 };

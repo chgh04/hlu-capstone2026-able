@@ -107,6 +107,10 @@ protected:
 	UPROPERTY(BlueprintReadWrite, Category = "Combat")
 	bool bIsInvincible = false;
 
+	// 피격받을때의 호출 (C++ / 블루프린트 구현 - Attack처럼)
+	UFUNCTION(BlueprintNativeEvent, Category = "Combat")
+	void GetHit();
+
 // 넉백 관련 함수/변수 -------------------
 protected:
 	// 넉백 적용 함수

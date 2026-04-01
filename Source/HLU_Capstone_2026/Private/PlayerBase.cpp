@@ -40,12 +40,12 @@ void APlayerBase::TryAttack()
         {
             ComboCount++;       // 콤보 카운트 증가
             bSaveAttack = true; // 연계 트리거 활성화
-            UE_LOG(LogTemp, Warning, TEXT("C++ Player Attack Return: Attack saved"));
+            //UE_LOG(LogTemp, Warning, TEXT("C++ Player Attack Return: Attack saved"));
             return;
         }
 
         // 이외의 경우 모두 리턴
-        UE_LOG(LogTemp, Warning, TEXT("C++ Player Attack Return: Now attcking"));
+        //UE_LOG(LogTemp, Warning, TEXT("C++ Player Attack Return: Now attcking"));
         return;
     }
     else // 첫 번째 공격일 경우에 연계공격 트리거 및 콤보 초기화 이후 공격 로직 호출
@@ -64,7 +64,7 @@ void APlayerBase::Attack_Implementation()
     // 공격중/연계중 아니라면 첫 번째 공격 시작
     bIsAttacking = true;
 
-    UE_LOG(LogTemp, Warning, TEXT("C++: Now Attack!(PlayerBase)"));
+    //UE_LOG(LogTemp, Warning, TEXT("C++: Now Attack!(PlayerBase)"));
 }
 
 bool APlayerBase::CanAttackTarget(AActor* Target) const

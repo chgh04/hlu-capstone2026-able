@@ -43,6 +43,10 @@ protected:
     // 공격 대상을 구분하는 함수(적) 구체화
     virtual bool CanAttackTarget(AActor* Target) const;
 
+    // HitStop(역경직) 적용 시간
+    UPROPERTY(EditAnywhere, Category = "Combat")
+    float HitStopTime = 0.05f;
+
 // 플레이어 콤보 공격 관련 -------------------
 protected:
     // 플레이어 콤보 연계가 가능하도록 전환 (ABP의 노티파이에서 호출함)
@@ -76,4 +80,7 @@ protected:
 
     UPROPERTY(EditAnywhere, Category = "Player_Movement")
     int32 MaxJumpCount = 1;
+
+// 기타 추가 기능
+    
 };

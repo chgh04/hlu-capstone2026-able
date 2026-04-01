@@ -31,6 +31,8 @@ void UHealthComponent::ReduceHealth(const FDamageData& DamageData)
     // 델리게이트를 통해 피해정보 전달
     OnTakeDamage.Broadcast(DamageData);
 
+    UE_LOG(LogTemp, Warning, TEXT("C++: Got Damaged %2.f, Remain HP: %.2f"), DamageData.DamageAmount, CurrentHealth);
+
     // 체력이 0이 되면 사망 처리
     if (CurrentHealth <= 0.f)
     {

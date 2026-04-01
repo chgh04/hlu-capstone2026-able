@@ -14,6 +14,12 @@ ADefaultCharBase::ADefaultCharBase()
     AttackBox->SetupAttachment(RootComponent);
     AttackBox->SetCollisionProfileName(TEXT("Trigger"));
     AttackBox->SetGenerateOverlapEvents(true);
+    AttackBox->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+    // 아래 안되는거 같은니깐 그냥 블루프린트에서 ResponseToChannel 설정
+    AttackBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+    AttackBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Overlap);
+
+    AttackBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void ADefaultCharBase::BeginPlay()
@@ -22,6 +28,9 @@ void ADefaultCharBase::BeginPlay()
 
     // 공격 박스 Overlap 이벤트 바인딩
     AttackBox->OnComponentBeginOverlap.AddDynamic(this, &ADefaultCharBase::OnAttackBoxOverlap);
+
+    // 공격 박스 비활성화
+    AttackBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
     // 델리게이트 바인딩(HealthComponent의 FOnTakeDamageSignature와 바인딩 하여 피격 정보를 받음)
     if (HealthComponent)
@@ -122,7 +131,7 @@ bool ADefaultCharBase::CanAttackTarget(AActor* Target) const
 
 void ADefaultCharBase::OnAttackBoxOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {   
-    // OtherActor가 없거나, 본이이거나, 중복피격배열에 OtherActor가 있다면 미실행
+    // OtherActor가 없거나, 본인이거나, 중복피격배열에 OtherActor가 있다면 미실행
     if (OtherActor && OtherActor != this && !THitActors.Contains(OtherActor))
     {
         if (CanAttackTarget(OtherActor))
@@ -140,6 +149,12 @@ void ADefaultCharBase::SetDefaultDamage(float Amount)
 {
     DefaultDamage = Amount;
 }
+
+void ADefaultCharBase::GetHit_Implementation()
+{
+    // 피격 상태 진입, 기본 구현이라 자식에서 재정의해야함
+}
+
 
 void ADefaultCharBase::PlayKnockBack(const FDamageData& DamageData)
 {
