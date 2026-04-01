@@ -36,7 +36,7 @@ void APlayerBase::TryAttack()
     // 플레이어가 공격상태일 경우 리턴하지만, 만약 연계공격 타이밍에 입력이 들어온다면 연계 트리거를 활성화
     if (bIsAttacking)
     {   
-        if (!bSaveAttack)
+        if (!bSaveAttack && !bIgnoreSaveAttack)
         {
             ComboCount++;       // 콤보 카운트 증가
             bSaveAttack = true; // 연계 트리거 활성화

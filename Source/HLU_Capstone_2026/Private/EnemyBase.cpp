@@ -69,7 +69,7 @@ void AEnemyBase::DetectPlayer()
     // 감지 반경 안에 있으면 저장, 밖이면 nullptr
     TargetPlayer = (Distance <= DetectionRadius) ? PlayerPawn : nullptr;
 
-    //UE_LOG(LogTemp, Warning, TEXT("Detect PlayerPawn, Distance: %.2f"), Distance);
+    UE_LOG(LogTemp, Warning, TEXT("Detect PlayerPawn, Distance: %.2f"), Distance);
 }
 
 void AEnemyBase::OnDeath_Implementation()

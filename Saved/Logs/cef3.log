@@ -1,12 +1,4 @@
-[24048:24064:0401/021611.853:WARNING:chrome_main_delegate.cc(745)] This is Chrome version 128.0.6613.138 (not a warning)
-[24048:24064:0401/021612.090:WARNING:account_consistency_mode_manager.cc(77)] Desktop Identity Consistency cannot be enabled as no OAuth client ID and client secret have been configured.
-[14100:25308:0401/021618.349:WARNING:frame_impl.cc(430)] virtual CefFrameImpl::SendProcessMessage sent to detached frame 5-9EE2B2456ADC0E4438F6F1C3C74E4704 will be ignored
-[24048:18320:0401/021620.349:WARNING:browser_info.cc(345)] Returning a speculative frame for [7,9]
-[24048:24064:0401/021621.011:WARNING:browser_info.cc(345)] Returning a speculative frame for [9,9]
-[24048:24064:0401/021621.012:WARNING:browser_info.cc(345)] Returning a speculative frame for [9,9]
-[24048:24064:0401/021621.013:WARNING:browser_info.cc(345)] Returning a speculative frame for [9,9]
-[24048:24064:0401/021621.013:WARNING:browser_info.cc(345)] Returning a speculative frame for [9,9]
-[24048:18320:0401/021621.014:WARNING:browser_info.cc(345)] Returning a speculative frame for [9,9]
-[17156:10308:0401/021830.643:ERROR:shared_image_manager.cc(224)] SharedImageManager::ProduceSkia: Trying to Produce a Skia representation from a non-existent mailbox.
-[17156:10308:0401/021830.643:ERROR:shared_image_manager.cc(224)] SharedImageManager::ProduceSkia: Trying to Produce a Skia representation from a non-existent mailbox.
-[24048:24064:0401/022316.785:WARNING:pref_notifier_impl.cc(41)] Pref observer for media_router.cast_allow_all_ips found at shutdown.
+[20624:2616:0401/213030.043:WARNING:chrome_main_delegate.cc(745)] This is Chrome version 128.0.6613.138 (not a warning)
+[20624:2616:0401/213030.090:WARNING:account_consistency_mode_manager.cc(77)] Desktop Identity Consistency cannot be enabled as no OAuth client ID and client secret have been configured.
+[5728:19600:0401/213032.894:WARNING:frame_impl.cc(430)] virtual CefFrameImpl::SendProcessMessage sent to detached frame 5-64AA79A600842225AFCEFE00778D6F05 will be ignored
+[20624:2616:0401/222407.838:WARNING:pref_notifier_impl.cc(41)] Pref observer for media_router.cast_allow_all_ips found at shutdown.
