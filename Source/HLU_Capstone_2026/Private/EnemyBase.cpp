@@ -45,12 +45,12 @@ void AEnemyBase::Tick(float DeltaTime)
     switch (CurrentState)
     {
     case EEnemyState::Patrol:
-        UE_LOG(LogTemp, Warning, TEXT("AI: Patrol"));
+        //UE_LOG(LogTemp, Warning, TEXT("AI: Patrol"));
         // 순찰 로직 실행 (예: 무작위 위치로 이동), 기본상태
         break;
 
     case EEnemyState::Chase:
-        UE_LOG(LogTemp, Warning, TEXT("AI: Chase"));
+        //UE_LOG(LogTemp, Warning, TEXT("AI: Chase"));
         // TargetPlayer가 유효한지 확인 후 그쪽으로 이동
         if (TargetPlayer)
         {   
@@ -61,20 +61,22 @@ void AEnemyBase::Tick(float DeltaTime)
 
     case EEnemyState::Attack:
         if (bIsAttacking) break;
-        UE_LOG(LogTemp, Warning, TEXT("AI: Attack"));
+        //UE_LOG(LogTemp, Warning, TEXT("AI: Attack"));
         // 이동 멈춤 및 공격 실행
         TryAttack();
         // 공격이 끝나면 다시 거리를 재고 Chase로 돌아가는 로직은 각 캐릭터 BP에서 공격 애니메이션과 함께 구현 필요
         break;
 
     case EEnemyState::Hit:
-        UE_LOG(LogTemp, Warning, TEXT("AI: Hit"));
+        //UE_LOG(LogTemp, Warning, TEXT("AI: Hit"));
         // 넉백 중이므로 아무 행동도 하지 않고 대기 (GetHit 함수에서 타이머 실행됨)
         break;
 
     case EEnemyState::Dead:
-        UE_LOG(LogTemp, Warning, TEXT("AI: Dead"));
+        //UE_LOG(LogTemp, Warning, TEXT("AI: Dead"));
         // 이미 죽었으므로 아무것도 하지 않음
+
+        OnDeath_Implementation();
         break;
     }
 }
@@ -82,7 +84,7 @@ void AEnemyBase::Tick(float DeltaTime)
 void AEnemyBase::Attack_Implementation()
 {   
     //Super::Attack_Implementation();
-    UE_LOG(LogTemp, Warning, TEXT("Enemy is now attack"));
+    //UE_LOG(LogTemp, Warning, TEXT("Enemy is now attack"));
     
     bIsAttacking = true;
 }
@@ -133,6 +135,8 @@ void AEnemyBase::OnDeath_Implementation()
     Super::OnDeath_Implementation();
 
     CurrentState = EEnemyState::Dead;
+
+    PrimaryActorTick.bCanEverTick = false;
 }
 
 void AEnemyBase::OnDetectionBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -144,7 +148,7 @@ void AEnemyBase::OnDetectionBeginOverlap(UPrimitiveComponent* OverlappedComp, AA
         if (OverlappedPlayer)
         {
             TargetPlayer = OverlappedPlayer;
-            UE_LOG(LogTemp, Warning, TEXT("AI: Player Detected!"));
+            //UE_LOG(LogTemp, Warning, TEXT("AI: Player Detected!"));
 
             // 추적 상태(State)로 전환
             CurrentState = EEnemyState::Chase;
@@ -158,7 +162,7 @@ void AEnemyBase::OnDetectionEndOverlap(UPrimitiveComponent* OverlappedComp, AAct
     if (OtherActor && OtherActor == TargetPlayer)
     {
         TargetPlayer = nullptr; // 타겟 비우기
-        UE_LOG(LogTemp, Warning, TEXT("AI: Player Lost!"));
+        //UE_LOG(LogTemp, Warning, TEXT("AI: Player Lost!"));
 
         // 순찰(Patrol) 상태로 돌아감
         CurrentState = EEnemyState::Patrol;

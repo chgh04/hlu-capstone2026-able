@@ -47,6 +47,17 @@ protected:
     UPROPERTY(EditAnywhere, Category = "Combat")
     float HitStopTime = 0.05f;
 
+    // HitStop(역경직) 및 피격 시 월드 타이머 짧게 중단
+    UFUNCTION(BlueprintCallable, Category = "Combat")
+    void ApplyHitStop(float time);
+
+    // AttackDelay 적용 함수
+    UFUNCTION(BlueprintCallable, Category = "Combat")
+    void PlayerAttackDelay(float Time);
+
+    // 공격 딜레이 후 다시 공격이 가능하도록 전환
+    void PlayerAttackDelayReset();
+
 // 플레이어 콤보 공격 관련 -------------------
 protected:
     // 플레이어 콤보 연계가 가능하도록 전환 (ABP의 노티파이에서 호출함)
@@ -57,7 +68,7 @@ protected:
     UFUNCTION(BlueprintCallable, Category = "Combat")
     void ResetCombo();
 
-    // 현재 타수
+    // 현재 플레이어의 공격 타수
     UPROPERTY(BlueprintReadWrite, Category = "Combat")
     int32 ComboCount = 0;
 
@@ -68,6 +79,16 @@ protected:
     // 공격 도중 버튼을 또 눌렀는지 판단, 애니메이션 노티파이와 함께 사용(AS_Player)
     UPROPERTY(BlueprintReadWrite, Category = "Combat")
     bool bSaveAttack = false; 
+
+// 피격 관련 함수/변수
+protected:
+    // 부모클래스에서 상속받아 사용
+    virtual void GetHit(const FDamageData& DamageData) override;
+
+    // 플레이어 피격무적 시간 변수
+    UPROPERTY(EditDefaultsOnly, Category = "Combat")
+    float HitInvincibleTime = 0.2f;
+
 // 플레이어 이동 관련 함수/변수
 protected:
     // 점프 시도
@@ -82,5 +103,8 @@ protected:
     int32 MaxJumpCount = 1;
 
 // 기타 추가 기능
+protected:
+    // 플레이어 공격 관련 타이머 관리자
+    FTimerHandle PlayerTimerHandler;
     
 };

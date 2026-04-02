@@ -55,12 +55,18 @@ void ADefaultCharBase::OnDeath_Implementation()
 {
     // 블루프린트에서 override해서 사망 애니메이션, 이펙트, 아이템 드롭 후 Destroy 
     //Destroy();
-    UE_LOG(LogTemp, Warning, TEXT("Character OnDeath"));
+    UE_LOG(LogTemp, Warning, TEXT("C++: Character OnDeath"));
 }
 
 float ADefaultCharBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
     float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+    
+    // 무적상태라면 피해데이터를 컴포넌트로 전달하지 않고 즉시 리턴
+    if (bIsInvincible)
+    {
+        return ActualDamage;
+    }
 
     // 인터페이스 전달을 위한 구조체 선언 및 초기화
     FDamageData Data;

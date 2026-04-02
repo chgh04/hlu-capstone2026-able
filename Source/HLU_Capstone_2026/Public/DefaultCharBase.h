@@ -104,7 +104,7 @@ protected:
 	bool bIsAttacking = false;
 
 	// 캐릭터가 무적상태인지(피격 후 혹은 특정 패턴) 판단
-	UPROPERTY(BlueprintReadWrite, Category = "Combat")
+	UPROPERTY(EditAnywhere, Category = "Combat")
 	bool bIsInvincible = false;
 
 // 피해 관련 함수/변수 -------------------

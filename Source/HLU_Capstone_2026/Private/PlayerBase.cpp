@@ -3,6 +3,8 @@
 #include "GameplayTagContainer.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 APlayerBase::APlayerBase()
 {
@@ -49,7 +51,8 @@ void APlayerBase::TryAttack()
         return;
     }
     else // 첫 번째 공격일 경우에 연계공격 트리거 및 콤보 초기화 이후 공격 로직 호출
-    {
+    {   
+
         bSaveAttack = false;
         ComboCount = 0;
         Attack();
@@ -88,6 +91,35 @@ bool APlayerBase::CanAttackTarget(AActor* Target) const
     return TagInterface->HasMatchingGameplayTag(EnemyTag) || TagInterface->HasMatchingGameplayTag(DestructibleTag);
 }
 
+void APlayerBase::ApplyHitStop(float time)
+{   
+    // 인자로 주어진 시간만큼으로 월드 타임 감속
+    UGameplayStatics::SetGlobalTimeDilation(GetWorld(), time);
+
+    FTimerHandle HitStopTimerHandle;
+
+    GetWorld()->GetTimerManager().SetTimer(HitStopTimerHandle, FTimerDelegate::CreateLambda([this]()
+        {
+            // 0.05초 뒤에 다시 원래 속도로 복귀
+            UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.0f);
+
+        }), 0.05f, false);
+}
+
+void APlayerBase::PlayerAttackDelay(float Time)
+{   
+    // 기존 공격 딜레이 타이머 제거
+    GetWorldTimerManager().ClearTimer(PlayerTimerHandler);
+
+    // Time동안 공격 딜레이 상태 전환
+    GetWorldTimerManager().SetTimer(PlayerTimerHandler, this, &APlayerBase::PlayerAttackDelayReset, Time, false);
+}
+
+void APlayerBase::PlayerAttackDelayReset()
+{
+    
+}
+
 void APlayerBase::CheckCombo()
 {   
     // 공격 연계가 가능하도록 전환
@@ -113,6 +145,29 @@ void APlayerBase::ResetCombo()
     UE_LOG(LogTemp, Warning, TEXT("C++: Combo Reset(PlayerBase)"));
 }
 
+void APlayerBase::GetHit(const FDamageData& DamageData)
+{   
+    // 부모클래스 GetHit 먼저 실행
+    Super::GetHit(DamageData);
+    
+    // 0.1초간 히트스탑
+    ApplyHitStop(0.1f);
+
+    // 플레이어 넉백상태 전환
+    bIsKnockBack = true;
+
+    // 무적 적용
+    bIsInvincible = true;
+
+    // 주어진 시간 후에 무적상태/넉백상태 해제
+    FTimerHandle HitInvincibleTimerHandle;
+    GetWorld()->GetTimerManager().SetTimer(HitInvincibleTimerHandle, FTimerDelegate::CreateLambda([this]()
+        {
+            bIsInvincible = false;
+            bIsKnockBack = false;
+        }), HitInvincibleTime, false);
+}
+
 void APlayerBase::TryJump()
 {   
     // 점프가 불가능한 상황에서는 점프 불가
@@ -120,7 +175,7 @@ void APlayerBase::TryJump()
     {
         return;
     }
-    
+
     Jump();
 }
 
