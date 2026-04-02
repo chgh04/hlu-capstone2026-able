@@ -28,35 +28,40 @@ void APlayerBase::BeginPlay()
 void APlayerBase::TryAttack()
 {
     // 부모클래스 TryAttack을 실행하지 않고 완전히 재정의
-    // 상태검사, 사망 / 넉백 / 피해무적상태(추후 추가 가능) 등등이라면 공격 불가
+    // 1. 상태검사, 사망 / 넉백 / 피해무적상태(추후 추가 가능) 등등이라면 공격 불가
     if (bIsKnockBack)
     {
         UE_LOG(LogTemp, Warning, TEXT("C++ Player Attack Return: Other Reason"));
         return;
     }
 
-    // 플레이어가 공격상태일 경우 리턴하지만, 만약 연계공격 타이밍에 입력이 들어온다면 연계 트리거를 활성화
+    // 2. 플레이어가 공격 애니메이션 도중 입력이 되었을 때, 공격 예약
     if (bIsAttacking)
     {   
         if (!bSaveAttack && !bIgnoreSaveAttack)
         {
-            ComboCount++;       // 콤보 카운트 증가
-            bSaveAttack = true; // 연계 트리거 활성화
-            //UE_LOG(LogTemp, Warning, TEXT("C++ Player Attack Return: Attack saved"));
-            return;
+            bSaveAttack = true;
+            UE_LOG(LogTemp, Warning, TEXT("C++ Player Attack Return: Attack saved"));
         }
-
-        // 이외의 경우 모두 리턴
-        //UE_LOG(LogTemp, Warning, TEXT("C++ Player Attack Return: Now attcking"));
+        UE_LOG(LogTemp, Warning, TEXT("C++ Player Attack Return: Already attacking"));
         return;
     }
-    else // 첫 번째 공격일 경우에 연계공격 트리거 및 콤보 초기화 이후 공격 로직 호출
-    {   
 
-        bSaveAttack = false;
-        ComboCount = 0;
+    // 3. 공격 애니메이션은 끝났지만, 대기시간 내에 입력을 했을 때
+    if (bIsWaitNextAttackInput)
+    {   
+        GetWorldTimerManager().ClearTimer(ComboTimerHandle);
+        bIsWaitNextAttackInput = false;
+        ComboCount++;
+        UE_LOG(LogTemp, Warning, TEXT("C++ Attack Continued! ComboCount: %d"), ComboCount);
         Attack();
+        return;
     }
+
+    // 4. 첫 번째 공격일 경우
+    ComboCount = 0;
+    UE_LOG(LogTemp, Warning, TEXT("C++ First Attack Started"));
+    Attack();
 }
 
 void APlayerBase::Attack_Implementation()
@@ -64,8 +69,10 @@ void APlayerBase::Attack_Implementation()
     // 부모 Attack 함수 미실행
     //Super::Attack_Implementation();
 
-    // 공격중/연계중 아니라면 첫 번째 공격 시작
+    // 공격이 시작될 때 모든 플래그를 초기화
     bIsAttacking = true;
+    bSaveAttack = false;
+    bIsWaitNextAttackInput = false;
 
     //UE_LOG(LogTemp, Warning, TEXT("C++: Now Attack!(PlayerBase)"));
 }
@@ -98,7 +105,7 @@ void APlayerBase::ApplyHitStop(float time)
 
     FTimerHandle HitStopTimerHandle;
 
-    GetWorld()->GetTimerManager().SetTimer(HitStopTimerHandle, FTimerDelegate::CreateLambda([this]()
+    GetWorldTimerManager().SetTimer(HitStopTimerHandle, FTimerDelegate::CreateLambda([this]()
         {
             // 0.05초 뒤에 다시 원래 속도로 복귀
             UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.0f);
@@ -109,10 +116,10 @@ void APlayerBase::ApplyHitStop(float time)
 void APlayerBase::PlayerAttackDelay(float Time)
 {   
     // 기존 공격 딜레이 타이머 제거
-    GetWorldTimerManager().ClearTimer(PlayerTimerHandler);
+    GetWorldTimerManager().ClearTimer(PlayerTimerHandle);
 
     // Time동안 공격 딜레이 상태 전환
-    GetWorldTimerManager().SetTimer(PlayerTimerHandler, this, &APlayerBase::PlayerAttackDelayReset, Time, false);
+    GetWorldTimerManager().SetTimer(PlayerTimerHandle, this, &APlayerBase::PlayerAttackDelayReset, Time, false);
 }
 
 void APlayerBase::PlayerAttackDelayReset()
@@ -128,20 +135,42 @@ void APlayerBase::CheckCombo()
 
 void APlayerBase::ResetCombo()
 {   
-    // 공격 연계가 불가능하도록 전환
-    bIgnoreSaveAttack = true;
-
-    // TryAttack에서 bSaveAttack이 활성화 되었다면 다음 공격으로 자동으로 넘어감, 연계공격 트리거 비활성화로 반복 방지
-    if (bSaveAttack)
-    {   
-        Attack();
-        bSaveAttack = false;
+    // 중복호출 제한
+    if (!bIsAttacking)
+    {
         return;
     }
 
-    // 연계공격 트리거가 false라면 공격, 콤보공격 관련 트리거 초기화
+    UE_LOG(LogTemp, Warning, TEXT("Reset Combo Called!"));
+
+    // 선입력 되었다면 즉시 다음 공격 실행
+    if (bSaveAttack)
+    {   
+        ComboCount++;
+        UE_LOG(LogTemp, Warning, TEXT("C++ Auto Attack Triggered! ComboCount: %d"), ComboCount);
+        Attack();
+        return;
+    }
+    
+    if (ComboCount % 2 == 0)
+    {
+        bIsWaitNextAttackInput = true;
+    }
+    
+    bIgnoreSaveAttack = true;
+    bIsAttacking = false;
+
+    UE_LOG(LogTemp, Warning, TEXT("C++ Player Wait Next Input, WaitTime: %.2f"), SecondAttackWaitTime);
+    GetWorldTimerManager().SetTimer(ComboTimerHandle, this, &APlayerBase::FullResetCombo, SecondAttackWaitTime, false);
+}
+
+void APlayerBase::FullResetCombo()
+{   
+    bIsAttacking = false;
     bSaveAttack = false;
+    bIsWaitNextAttackInput = false;
     ComboCount = 0;
+
     UE_LOG(LogTemp, Warning, TEXT("C++: Combo Reset(PlayerBase)"));
 }
 

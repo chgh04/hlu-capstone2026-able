@@ -44,7 +44,7 @@ protected:
     virtual bool CanAttackTarget(AActor* Target) const;
 
     // HitStop(역경직) 적용 시간
-    UPROPERTY(EditAnywhere, Category = "Combat")
+    UPROPERTY(EditDefaultsOnly, Category = "Combat")
     float HitStopTime = 0.05f;
 
     // HitStop(역경직) 및 피격 시 월드 타이머 짧게 중단
@@ -69,16 +69,28 @@ protected:
     void ResetCombo();
 
     // 현재 플레이어의 공격 타수
-    UPROPERTY(BlueprintReadWrite, Category = "Combat")
+    UPROPERTY(BlueprintReadOnly, Category = "Combat")
     int32 ComboCount = 0;
 
     // 공격 연계 타이밍 이전의 연계 입력은 무시하기 위한 트리거
-    UPROPERTY(BlueprintReadWrite, Category = "Combat")
+    UPROPERTY(BlueprintReadOnly, Category = "Combat")
     bool bIgnoreSaveAttack = true;
 
-    // 공격 도중 버튼을 또 눌렀는지 판단, 애니메이션 노티파이와 함께 사용(AS_Player)
-    UPROPERTY(BlueprintReadWrite, Category = "Combat")
+    // 공격 도중 버튼을 또 눌렀는지 판단, 애니메이션 노티파이와 함께 사용(AS_Player), 애니메이션 도중의 입력 판단에 사용됩니다. 
+    UPROPERTY(BlueprintReadOnly, Category = "Combat")
     bool bSaveAttack = false; 
+
+    // 첫 번째 공격 이후 몇초간 콤보를 이어갈 입력을 받는지 정의
+    UPROPERTY(EditDefaultsOnly, Category = "Combat")
+    float SecondAttackWaitTime = 0.2f;
+
+    // 첫 번째 공격 이후 공격 대기상태 판단, 애니메이션 종료 후 입력 판단에 사용됩니다. 
+    UPROPERTY(BlueprintReadWrite, Category = "Combat")
+    bool bIsWaitNextAttackInput = false;
+
+private:
+    // 콤보 초기화 변수가 포함된 함수
+    void FullResetCombo();
 
 // 피격 관련 함수/변수
 protected:
@@ -99,12 +111,15 @@ protected:
     UFUNCTION(BlueprintCallable, Category = "Player_Movement")
     virtual void TryStopJumping();
 
-    UPROPERTY(EditAnywhere, Category = "Player_Movement")
+    UPROPERTY(EditDefaultsOnly, Category = "Player_Movement")
     int32 MaxJumpCount = 1;
 
 // 기타 추가 기능
 protected:
     // 플레이어 공격 관련 타이머 관리자
-    FTimerHandle PlayerTimerHandler;
+    FTimerHandle PlayerTimerHandle;
+
+    // 플레이어 콤보 관련 타이머 관리자
+    FTimerHandle ComboTimerHandle;
     
 };
