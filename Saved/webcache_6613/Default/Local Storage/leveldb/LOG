@@ -1,2 +1,5 @@
-2026/04/03-03:53:30.606 19558 Creating DB C:\Users\win\Desktop\Capstone\hlu-capstone2026-able\Saved\webcache_6613\Default\Local Storage\leveldb since it was missing.
-2026/04/03-03:53:30.626 19558 Reusing MANIFEST C:\Users\win\Desktop\Capstone\hlu-capstone2026-able\Saved\webcache_6613\Default\Local Storage\leveldb/MANIFEST-000001
+2026/04/03-12:13:01.200 28c8 Reusing MANIFEST E:\Unreal\hlu-capstone2026-able\Saved\webcache_6613\Default\Local Storage\leveldb/MANIFEST-000001
+2026/04/03-12:13:01.207 28c8 Recovering log #23
+2026/04/03-12:13:01.208 28c8 Reusing old log E:\Unreal\hlu-capstone2026-able\Saved\webcache_6613\Default\Local Storage\leveldb/000023.log 
+2026/04/03-12:13:01.208 28c8 Delete type=2 #13
+2026/04/03-12:13:01.208 28c8 Delete type=2 #26
