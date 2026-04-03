@@ -58,6 +58,18 @@ protected:
     // 공격 딜레이 후 다시 공격이 가능하도록 전환
     void PlayerAttackDelayReset();
 
+    // 공격 시 전진 거리
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+    float AttackStepForce = 500.f;
+
+    // 달리는 도중 공격 시 전진거리 배율
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+    float AttackStepForceMultiplierWhileRun = 2.0f;
+
+    // 공격 시작 전 당시의 속도 저장 변수
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+    float SavedAttackSpeed;
+
 // 플레이어 콤보 공격 관련 -------------------
 protected:
     // 플레이어 콤보 연계가 가능하도록 전환 (ABP의 노티파이에서 호출함)
@@ -114,11 +126,21 @@ protected:
     UFUNCTION(BlueprintCallable, Category = "Player_Movement")
     virtual void TryStopJumping();
 
+    // 플레이어 최대 점프 가능 횟수, 근데 이거 어차피 CharacterMovement 클래스에 있는 변수라 안쓸 수 있음
     UPROPERTY(EditDefaultsOnly, Category = "Player_Movement")
     int32 MaxJumpCount = 1;
 
+    // 애니메이션 이벤트에서 호출할 전진 스텝 함수 
+    UFUNCTION(BlueprintCallable, Category = "Combat")
+    void StepForward(float StepForce = 800.0f);
+
+
 // 기타 추가 기능
 protected:
+    // 플레이어가 이동/공격을 제한하는 이상상태에 있는지 판단하는 함수
+    // 행동 가능하면 true, 행동이 불가능하면 false를 반환
+    virtual bool IsCharacterCanAction() override;
+
     // 플레이어 공격 관련 타이머 관리자
     FTimerHandle PlayerTimerHandle;
 

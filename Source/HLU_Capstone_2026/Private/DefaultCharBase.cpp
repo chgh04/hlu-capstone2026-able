@@ -56,6 +56,11 @@ void ADefaultCharBase::OnDeath_Implementation()
     // 블루프린트에서 override해서 사망 애니메이션, 이펙트, 아이템 드롭 후 Destroy 
     //Destroy();
     UE_LOG(LogTemp, Warning, TEXT("C++: Character OnDeath"));
+
+    if (!bIsDead)
+    {
+        bIsDead = true;
+    }
 }
 
 float ADefaultCharBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -180,4 +185,11 @@ void ADefaultCharBase::PlayKnockBack(const FDamageData& DamageData)
     LaunchVelocity.Z = 200.f; // 살짝 위로 뜨게 만듦
 
     LaunchCharacter(LaunchVelocity, true, true); // 넉백 적용
+}
+
+bool ADefaultCharBase::IsCharacterCanAction()
+{
+    bool bIsCanAct = !(bIsKnockBack || bIsDead);
+
+    return bIsCanAct;
 }

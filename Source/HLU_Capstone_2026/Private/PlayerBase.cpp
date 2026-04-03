@@ -29,9 +29,9 @@ void APlayerBase::TryAttack()
 {   
     // 부모클래스 TryAttack을 실행하지 않고 완전히 재정의
     // 1. 상태검사, 사망 / 넉백 / 피해무적상태(추후 추가 가능) 등등이라면 공격 불가
-    if (bIsKnockBack)
+    if (!IsCharacterCanAction())
     {
-        UE_LOG(LogTemp, Warning, TEXT("C++ Player Attack Return: Other Reason"));
+        //UE_LOG(LogTemp, Warning, TEXT("C++ Player Attack Return: Other Reason"));
         return;
     }
 
@@ -41,7 +41,7 @@ void APlayerBase::TryAttack()
         if (!bSaveAttack && !bIgnoreSaveAttack)
         {
             bSaveAttack = true;
-            UE_LOG(LogTemp, Warning, TEXT("C++ Player Attack Return: Attack saved"));
+            //UE_LOG(LogTemp, Warning, TEXT("C++ Player Attack Return: Attack saved"));
         }
         //UE_LOG(LogTemp, Warning, TEXT("C++ Player Attack Return: Already attacking"));
         return;
@@ -53,7 +53,7 @@ void APlayerBase::TryAttack()
         GetWorldTimerManager().ClearTimer(ComboTimerHandle);
         bIsWaitNextAttackInput = false;
         ComboCount++;
-        UE_LOG(LogTemp, Warning, TEXT("C++ Attack Continued! ComboCount: %d"), ComboCount);
+        //UE_LOG(LogTemp, Warning, TEXT("C++ Attack Continued! ComboCount: %d"), ComboCount);
         Attack();
         return;
     }
@@ -63,7 +63,7 @@ void APlayerBase::TryAttack()
 
     // 4. 첫 번째 공격일 경우
     ComboCount = 0;
-    UE_LOG(LogTemp, Warning, TEXT("C++ First Attack Started"));
+    //UE_LOG(LogTemp, Warning, TEXT("C++ First Attack Started"));
     Attack();
 }
 
@@ -71,6 +71,9 @@ void APlayerBase::Attack_Implementation()
 {   
     // 부모 Attack 함수 미실행
     //Super::Attack_Implementation();
+
+    // 공격 브레이크 전 속도 저장
+    SavedAttackSpeed = GetVelocity().Size2D();
 
     // 공격이 시작될 때 모든 플래그를 초기화
     bIsAttacking = true;
@@ -150,7 +153,7 @@ void APlayerBase::ResetCombo()
     if (bSaveAttack)
     {   
         ComboCount++;
-        UE_LOG(LogTemp, Warning, TEXT("C++ Auto Attack Triggered! ComboCount: %d"), ComboCount);
+        //UE_LOG(LogTemp, Warning, TEXT("C++ Auto Attack Triggered! ComboCount: %d"), ComboCount);
         Attack();
         return;
     }
@@ -165,7 +168,7 @@ void APlayerBase::ResetCombo()
     EndAttackState();
 
     // SecondAttackWaitTime 이후에 모든 콤보 플래그 리셋 함수를 호출
-    UE_LOG(LogTemp, Warning, TEXT("C++ Player Wait Next Input, WaitTime: %.2f"), SecondAttackWaitTime);
+    //UE_LOG(LogTemp, Warning, TEXT("C++ Player Wait Next Input, WaitTime: %.2f"), SecondAttackWaitTime);
     GetWorldTimerManager().SetTimer(ComboTimerHandle, this, &APlayerBase::FullResetCombo, SecondAttackWaitTime, false);
 }
 
@@ -183,11 +186,11 @@ void APlayerBase::FullResetCombo()
     // 공격 도중이면 리셋 방지
     if (bIsAttacking)
     {
-        UE_LOG(LogTemp, Warning, TEXT("C++: FullResetCombo Ignored! Player is already attacking."));
+        //UE_LOG(LogTemp, Warning, TEXT("C++: FullResetCombo Ignored! Player is already attacking."));
         return;
     }
 
-    UE_LOG(LogTemp, Warning, TEXT("C++: Full reset combo"));
+    //UE_LOG(LogTemp, Warning, TEXT("C++: Full reset combo"));
     bIsAttacking = false;
     bSaveAttack = false;
     bIsWaitNextAttackInput = false;
@@ -233,7 +236,7 @@ void APlayerBase::GetHit(const FDamageData& DamageData)
 void APlayerBase::TryJump()
 {   
     // 점프가 불가능한 상황에서는 점프 불가
-    if (bIsKnockBack)
+    if (!IsCharacterCanAction())
     {
         return;
     }
@@ -245,4 +248,45 @@ void APlayerBase::TryStopJumping()
 {   
     // 점프 중단, 추후 별도 로직 추가 가능
     StopJumping();
+}
+
+void APlayerBase::StepForward(float StepForce)
+{
+    // 넉백중 등 이동 불가능 상태에선 무시
+    if (!IsCharacterCanAction())
+    {
+        return;
+    }
+
+    // 캐릭터 무브먼트 컴포넌트 가져오기, 없으면 리턴
+    UCharacterMovementComponent* MovementComp = GetCharacterMovement();
+    if (!MovementComp)
+    {
+        return;
+    }
+    
+    // 달리는 도중의 판단값 설정
+    float RunThreshold = MovementComp->MaxWalkSpeed * 0.8f;
+
+    // 배율 결정
+    float SpeedMultiplier = (SavedAttackSpeed > RunThreshold) ? AttackStepForceMultiplierWhileRun : 1.0f;
+
+    // 최종 힘 계산
+    float FinalForce = StepForce * SpeedMultiplier;
+
+    // 속도 적용
+    FVector ForwardDir = GetActorForwardVector();   // 캐릭터 전방 벡터 구하기
+    FVector DashVelocity = ForwardDir * FinalForce;
+    DashVelocity.Z = MovementComp->Velocity.Z;
+
+    MovementComp->Velocity = DashVelocity;
+
+    UE_LOG(LogTemp, Warning, TEXT("Current Speed: %f, Final Force: %f, Threshold: %f"), SavedAttackSpeed, FinalForce, RunThreshold);
+}
+
+bool APlayerBase::IsCharacterCanAction()
+{
+    bool bIsCanAct = Super::IsCharacterCanAction();
+
+    return bIsCanAct;
 }

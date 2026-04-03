@@ -137,4 +137,15 @@ protected:
 	// 캐릭터의 넉백 강도
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	float KnockbackStrength = 500.f;
+
+	// 캐릭터 사망상태 플래그
+	UPROPERTY(EditAnywhere, Category = "Status")
+	bool bIsDead = false;
+
+// 기타 추가 기능
+protected:
+	// 해당 캐릭터가 움직일 수 있는지 확인하는 함수, 자식에서 재정의하여 사용 가능
+	// 캐릭터가 행동 가능한 상태라면 true, 아니라면 false 반환합니다. 
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Status")
+	virtual bool IsCharacterCanAction();
 };
