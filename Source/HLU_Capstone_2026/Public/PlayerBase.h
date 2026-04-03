@@ -88,7 +88,7 @@ protected:
     UPROPERTY(BlueprintReadWrite, Category = "Combat")
     bool bIsWaitNextAttackInput = false;
 
-    // 일반공격 이후 상태 복구 함수 (부모 클래스 함수 재사용)
+    // 일반공격/피격 이후 상태 복구 함수 (부모 클래스 함수 재사용)
     virtual void EndAttackState() override;
 
 private:

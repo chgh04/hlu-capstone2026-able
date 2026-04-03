@@ -1,4 +1,6 @@
-[25096:20992:0404/000822.434:WARNING:chrome_main_delegate.cc(745)] This is Chrome version 128.0.6613.138 (not a warning)
-[25096:20992:0404/000822.479:WARNING:account_consistency_mode_manager.cc(77)] Desktop Identity Consistency cannot be enabled as no OAuth client ID and client secret have been configured.
-[25176:22060:0404/000824.831:WARNING:frame_impl.cc(430)] virtual CefFrameImpl::SendProcessMessage sent to detached frame 5-3079136AED0E24D7A21844BCCDA350C0 will be ignored
-[25096:20992:0404/002750.347:WARNING:pref_notifier_impl.cc(41)] Pref observer for media_router.cast_allow_all_ips found at shutdown.
+[20628:9124:0404/005414.116:WARNING:chrome_main_delegate.cc(745)] This is Chrome version 128.0.6613.138 (not a warning)
+[20628:9124:0404/005414.197:WARNING:account_consistency_mode_manager.cc(77)] Desktop Identity Consistency cannot be enabled as no OAuth client ID and client secret have been configured.
+[12628:12444:0404/005417.358:WARNING:frame_impl.cc(430)] virtual CefFrameImpl::SendProcessMessage sent to detached frame 5-DFBAEC79193F2615477FA2D1D91E078D will be ignored
+[20628:9124:0404/010538.335:ERROR:device_event_log_impl.cc(196)] [01:05:38.321] USB: usb_service_win.cc:105 SetupDiGetDeviceProperty({{A45C254E-DF1C-4EFD-8020-67D146A850E0}, 6}) failed: 요소가 없습니다. (0x490)
+[20628:9124:0404/010538.363:ERROR:device_event_log_impl.cc(196)] [01:05:38.356] USB: usb_service_win.cc:308 SetupDiEnumDeviceInterfaces: 사용 가능한 데이터가 없습니다. (0x103)
+[20628:9124:0404/011752.715:WARNING:pref_notifier_impl.cc(41)] Pref observer for media_router.cast_allow_all_ips found at shutdown.

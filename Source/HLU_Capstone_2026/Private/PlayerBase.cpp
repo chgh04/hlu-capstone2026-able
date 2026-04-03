@@ -26,7 +26,7 @@ void APlayerBase::BeginPlay()
 }
 
 void APlayerBase::TryAttack()
-{
+{   
     // 부모클래스 TryAttack을 실행하지 않고 완전히 재정의
     // 1. 상태검사, 사망 / 넉백 / 피해무적상태(추후 추가 가능) 등등이라면 공격 불가
     if (bIsKnockBack)
@@ -57,6 +57,9 @@ void APlayerBase::TryAttack()
         Attack();
         return;
     }
+
+    // 공격 초기화 타이머의 Timer ghost 현상 방지
+    GetWorldTimerManager().ClearTimer(ComboTimerHandle);
 
     // 4. 첫 번째 공격일 경우
     ComboCount = 0;
@@ -147,7 +150,7 @@ void APlayerBase::ResetCombo()
     if (bSaveAttack)
     {   
         ComboCount++;
-        //UE_LOG(LogTemp, Warning, TEXT("C++ Auto Attack Triggered! ComboCount: %d"), ComboCount);
+        UE_LOG(LogTemp, Warning, TEXT("C++ Auto Attack Triggered! ComboCount: %d"), ComboCount);
         Attack();
         return;
     }
@@ -177,6 +180,14 @@ void APlayerBase::EndAttackState()
 
 void APlayerBase::FullResetCombo()
 {   
+    // 공격 도중이면 리셋 방지
+    if (bIsAttacking)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("C++: FullResetCombo Ignored! Player is already attacking."));
+        return;
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("C++: Full reset combo"));
     bIsAttacking = false;
     bSaveAttack = false;
     bIsWaitNextAttackInput = false;
