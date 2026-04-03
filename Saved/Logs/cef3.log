@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 [109616:111868:0403/181702.036:WARNING:chrome_main_delegate.cc(745)] This is Chrome version 128.0.6613.138 (not a warning)
 [109616:108484:0403/181702.375:ERROR:google_update_settings.cc(265)] Failed opening key Software\Chromium to set usagestats; result: 5
 [109616:111868:0403/181702.485:WARNING:account_consistency_mode_manager.cc(77)] Desktop Identity Consistency cannot be enabled as no OAuth client ID and client secret have been configured.
@@ -13,3 +14,10 @@
 [109616:111868:0403/192041.997:ERROR:device_event_log_impl.cc(196)] [19:20:41.933] USB: usb_service_win.cc:105 SetupDiGetDeviceProperty({{A45C254E-DF1C-4EFD-8020-67D146A850E0}, 6}) failed: 요소가 없습니다. (0x490)
 [109616:111868:0403/195851.749:ERROR:device_event_log_impl.cc(196)] [19:58:51.417] USB: usb_service_win.cc:105 SetupDiGetDeviceProperty({{A45C254E-DF1C-4EFD-8020-67D146A850E0}, 6}) failed: 요소가 없습니다. (0x490)
 [109616:111868:0403/201746.902:WARNING:pref_notifier_impl.cc(41)] Pref observer for media_router.cast_allow_all_ips found at shutdown.
+=======
+[16316:13488:0403/121300.942:WARNING:chrome_main_delegate.cc(745)] This is Chrome version 128.0.6613.138 (not a warning)
+[16316:13488:0403/121301.036:ERROR:os_crypt_win.cc(100)] Failed to decrypt: 키를 지정된 상태에서 사용하기에 부적합합니다. (0x8009000B)
+[16316:13488:0403/121301.166:WARNING:account_consistency_mode_manager.cc(77)] Desktop Identity Consistency cannot be enabled as no OAuth client ID and client secret have been configured.
+[12960:3036:0403/121311.253:WARNING:frame_impl.cc(430)] virtual CefFrameImpl::SendProcessMessage sent to detached frame 5-2C23EEE9D801606E2BA29BED4F7AECB1 will be ignored
+[16316:13488:0403/122007.820:WARNING:pref_notifier_impl.cc(41)] Pref observer for media_router.cast_allow_all_ips found at shutdown.
+>>>>>>> c9dd82d04a8b27150ef8f1965eb419ca8a4f6727

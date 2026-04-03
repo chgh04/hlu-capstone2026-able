@@ -1,3 +1,9 @@
+<<<<<<< HEAD
 2026/04/03-18:17:02.541 16fec Reusing MANIFEST C:\Users\win\Desktop\Capstone\hlu-capstone2026-able\Saved\webcache_6613\Default\Site Characteristics Database/MANIFEST-000001
 2026/04/03-18:17:02.546 16fec Recovering log #3
 2026/04/03-18:17:02.546 16fec Reusing old log C:\Users\win\Desktop\Capstone\hlu-capstone2026-able\Saved\webcache_6613\Default\Site Characteristics Database/000003.log 
+=======
+2026/04/03-12:13:01.201 48c0 Reusing MANIFEST E:\Unreal\hlu-capstone2026-able\Saved\webcache_6613\Default\Site Characteristics Database/MANIFEST-000001
+2026/04/03-12:13:01.205 48c0 Recovering log #3
+2026/04/03-12:13:01.205 48c0 Reusing old log E:\Unreal\hlu-capstone2026-able\Saved\webcache_6613\Default\Site Characteristics Database/000003.log 
+>>>>>>> c9dd82d04a8b27150ef8f1965eb419ca8a4f6727
