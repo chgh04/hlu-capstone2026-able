@@ -174,7 +174,6 @@ void ADefaultCharBase::GetHit(const FDamageData& DamageData)
 
 }
 
-
 void ADefaultCharBase::PlayKnockBack(const FDamageData& DamageData)
 {
     FVector LaunchVelocity = DamageData.HitDirection * KnockbackStrength; // ³Ë¹é °­µµ

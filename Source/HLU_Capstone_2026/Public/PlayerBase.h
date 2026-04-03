@@ -88,6 +88,9 @@ protected:
     UPROPERTY(BlueprintReadWrite, Category = "Combat")
     bool bIsWaitNextAttackInput = false;
 
+    // 일반공격 이후 상태 복구 함수 (부모 클래스 함수 재사용)
+    virtual void EndAttackState() override;
+
 private:
     // 콤보 초기화 변수가 포함된 함수
     void FullResetCombo();
@@ -99,7 +102,7 @@ protected:
 
     // 플레이어 피격무적 시간 변수
     UPROPERTY(EditDefaultsOnly, Category = "Combat")
-    float HitInvincibleTime = 0.2f;
+    float HitInvincibleTime = 1.0f;
 
 // 플레이어 이동 관련 함수/변수
 protected:
@@ -121,5 +124,8 @@ protected:
 
     // 플레이어 콤보 관련 타이머 관리자
     FTimerHandle ComboTimerHandle;
+
+    // 플레이어 피격 관련 타이머 관리자
+    FTimerHandle HitInvincibleTimerHandle;
     
 };

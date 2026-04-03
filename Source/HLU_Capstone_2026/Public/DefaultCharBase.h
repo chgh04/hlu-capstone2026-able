@@ -76,7 +76,7 @@ protected:
 
 	// 공격 상태 종료
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void EndAttackState();
+	virtual void EndAttackState();
 
 	// 공격 대상을 구분하는 함수(적/플레이어), OnAttackBoxOverlap에서 호출됩니다. 
 	virtual bool CanAttackTarget(AActor* Target) const;

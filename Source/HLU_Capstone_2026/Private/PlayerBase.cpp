@@ -43,7 +43,7 @@ void APlayerBase::TryAttack()
             bSaveAttack = true;
             UE_LOG(LogTemp, Warning, TEXT("C++ Player Attack Return: Attack saved"));
         }
-        UE_LOG(LogTemp, Warning, TEXT("C++ Player Attack Return: Already attacking"));
+        //UE_LOG(LogTemp, Warning, TEXT("C++ Player Attack Return: Already attacking"));
         return;
     }
 
@@ -141,27 +141,38 @@ void APlayerBase::ResetCombo()
         return;
     }
 
-    UE_LOG(LogTemp, Warning, TEXT("Reset Combo Called!"));
+    // UE_LOG(LogTemp, Warning, TEXT("Reset Combo Called!"));
 
     // 선입력 되었다면 즉시 다음 공격 실행
     if (bSaveAttack)
     {   
         ComboCount++;
-        UE_LOG(LogTemp, Warning, TEXT("C++ Auto Attack Triggered! ComboCount: %d"), ComboCount);
+        //UE_LOG(LogTemp, Warning, TEXT("C++ Auto Attack Triggered! ComboCount: %d"), ComboCount);
         Attack();
         return;
     }
     
+    // 콤보카운트가 0일때(첫 번째 공격)만 2번째 공격으로 연계가 가능
     if (ComboCount % 2 == 0)
     {
         bIsWaitNextAttackInput = true;
     }
     
-    bIgnoreSaveAttack = true;
-    bIsAttacking = false;
+    // 공격상태 초기화 / 공격 연계 가능 구간 플래그 초기화
+    EndAttackState();
 
+    // SecondAttackWaitTime 이후에 모든 콤보 플래그 리셋 함수를 호출
     UE_LOG(LogTemp, Warning, TEXT("C++ Player Wait Next Input, WaitTime: %.2f"), SecondAttackWaitTime);
     GetWorldTimerManager().SetTimer(ComboTimerHandle, this, &APlayerBase::FullResetCombo, SecondAttackWaitTime, false);
+}
+
+void APlayerBase::EndAttackState()
+{   
+    // 부모로직(bIsAttacking = false) 호출
+    Super::EndAttackState();
+
+    // 공격 연계 가능 구간 플래그 초기화
+    bIgnoreSaveAttack = true;
 }
 
 void APlayerBase::FullResetCombo()
@@ -171,29 +182,40 @@ void APlayerBase::FullResetCombo()
     bIsWaitNextAttackInput = false;
     ComboCount = 0;
 
-    UE_LOG(LogTemp, Warning, TEXT("C++: Combo Reset(PlayerBase)"));
+    // UE_LOG(LogTemp, Warning, TEXT("C++: Combo Reset(PlayerBase)"));
 }
 
 void APlayerBase::GetHit(const FDamageData& DamageData)
 {   
-    // 부모클래스 GetHit 먼저 실행
+    // 부모클래스 GetHit 먼저 실행 (넉백 면역이 아닌 경우에 넉백 적용 및 HitAnimation 강제 재생(BP에서 정의됨))
     Super::GetHit(DamageData);
     
     // 0.1초간 히트스탑
     ApplyHitStop(0.1f);
 
-    // 플레이어 넉백상태 전환
-    bIsKnockBack = true;
+    // 콤보 관련 타이머 진행상황을 즉시 강제 종료
+    GetWorldTimerManager().ClearTimer(ComboTimerHandle);
 
-    // 무적 적용
+    // 플레이어 넉백상태 전환(공격 및 이동 불가능) 및 무적 적용
+    bIsKnockBack = true;
     bIsInvincible = true;
 
-    // 주어진 시간 후에 무적상태/넉백상태 해제
-    FTimerHandle HitInvincibleTimerHandle;
+    // 모든 공격 플래그 강제 리셋
+    EndAttackState();   // 공격 상태 false로 전환 및 연계 가능 구간 플래그 초기화
+    bSaveAttack = false;    // 선입력된 공격 중단
+    bIsWaitNextAttackInput = false; // 대기시간 중 입력된 공격 중단 
+    ComboCount = 0; // 콤보 초기화
+
+    // 기존에 돌고 있던 피격 타이머가 있다면 초기화 (연속 피격 대비)
+    GetWorldTimerManager().ClearTimer(HitInvincibleTimerHandle);
+
+    // 주어진 시간 후에 무적상태/넉백상태 해제 및 공격상태 해제(공격 중 피격 시 플래그가 바뀌지 않는 문제 해결)
     GetWorld()->GetTimerManager().SetTimer(HitInvincibleTimerHandle, FTimerDelegate::CreateLambda([this]()
         {
             bIsInvincible = false;
             bIsKnockBack = false;
+
+            UE_LOG(LogTemp, Warning, TEXT("C++: Hit Stun & Invincible Ended"));
         }), HitInvincibleTime, false);
 }
 
