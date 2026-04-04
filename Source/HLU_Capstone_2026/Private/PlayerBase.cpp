@@ -23,6 +23,14 @@ APlayerBase::APlayerBase()
 void APlayerBase::BeginPlay()
 {
     Super::BeginPlay();
+
+    MovementComp = GetCharacterMovement();
+    
+    // 기존 바닥 마찰력 저장
+    if (MovementComp)
+    {
+        SavedGroundFriction = MovementComp->GroundFriction;
+    }
 }
 
 void APlayerBase::TryAttack()
@@ -104,19 +112,19 @@ bool APlayerBase::CanAttackTarget(AActor* Target) const
     return TagInterface->HasMatchingGameplayTag(EnemyTag) || TagInterface->HasMatchingGameplayTag(DestructibleTag);
 }
 
-void APlayerBase::ApplyHitStop(float time)
+void APlayerBase::ApplyHitStop(float time, float dilation)
 {   
     // 인자로 주어진 시간만큼으로 월드 타임 감속
-    UGameplayStatics::SetGlobalTimeDilation(GetWorld(), time);
+    UGameplayStatics::SetGlobalTimeDilation(GetWorld(), dilation);
 
     FTimerHandle HitStopTimerHandle;
 
     GetWorldTimerManager().SetTimer(HitStopTimerHandle, FTimerDelegate::CreateLambda([this]()
         {
-            // 0.05초 뒤에 다시 원래 속도로 복귀
+            // 0.025초 뒤에 다시 원래 속도로 복귀
             UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.0f);
-
-        }), 0.05f, false);
+            
+        }), time, false);
 }
 
 void APlayerBase::CheckCombo()
@@ -160,6 +168,12 @@ void APlayerBase::ResetCombo()
 
 void APlayerBase::EndAttackState()
 {   
+    // 지면마찰력 재적용
+    if (MovementComp)
+    {
+        MovementComp->GroundFriction = SavedGroundFriction;
+    }
+
     // 부모로직(bIsAttacking = false) 호출
     Super::EndAttackState();
 
@@ -185,13 +199,16 @@ void APlayerBase::FullResetCombo()
     // UE_LOG(LogTemp, Warning, TEXT("C++: Combo Reset(PlayerBase)"));
 }
 
-void APlayerBase::GetHit(const FDamageData& DamageData)
+bool APlayerBase::GetHit(const FDamageData& DamageData)
 {   
-    // 부모클래스 GetHit 먼저 실행 (넉백 면역이 아닌 경우에 넉백 적용 및 HitAnimation 강제 재생(BP에서 정의됨))
-    Super::GetHit(DamageData);
+    // 부모 로직 실행, 피격이 유효하지 않았다면 리턴
+    if (!Super::GetHit(DamageData))
+    {
+        return false;
+    }
     
-    // 0.1초간 히트스탑
-    ApplyHitStop(0.1f);
+    // 0.05초간 히트스탑
+    ApplyHitStop(HitStopTime, HitStopDilation);
 
     // 콤보 관련 타이머 진행상황을 즉시 강제 종료
     GetWorldTimerManager().ClearTimer(ComboTimerHandle);
@@ -217,12 +234,14 @@ void APlayerBase::GetHit(const FDamageData& DamageData)
 
             UE_LOG(LogTemp, Warning, TEXT("C++: Hit Stun & Invincible Ended"));
         }), HitInvincibleTime, false);
+
+    return true;
 }
 
 void APlayerBase::TryJump()
 {   
     // 점프가 불가능한 상황에서는 점프 불가
-    if (!IsCharacterCanAction())
+    if (!IsCharacterCanAction() || bIsAttacking)
     {
         return;
     }
@@ -244,13 +263,12 @@ void APlayerBase::StepForward(float StepForce)
         return;
     }
 
-    // 캐릭터 무브먼트 컴포넌트 가져오기, 없으면 리턴
-    UCharacterMovementComponent* MovementComp = GetCharacterMovement();
+    // 캐릭터 무브먼트 컴포넌트 없으면 리턴
     if (!MovementComp)
     {
         return;
     }
-    
+
     // 달리는 도중의 판단값 설정
     float RunThreshold = MovementComp->MaxWalkSpeed * 0.8f;
 
@@ -260,6 +278,9 @@ void APlayerBase::StepForward(float StepForce)
     // 최종 힘 계산
     float FinalForce = StepForce * SpeedMultiplier;
 
+    // 지면마찰력을 0으로 변경
+    MovementComp->GroundFriction = 0.0f;
+
     // 속도 적용
     FVector ForwardDir = GetActorForwardVector();   // 캐릭터 전방 벡터 구하기
     FVector DashVelocity = ForwardDir * FinalForce;
@@ -268,6 +289,49 @@ void APlayerBase::StepForward(float StepForce)
     MovementComp->Velocity = DashVelocity;
 
     UE_LOG(LogTemp, Warning, TEXT("Current Speed: %f, Final Force: %f, Threshold: %f"), SavedAttackSpeed, FinalForce, RunThreshold);
+}
+
+bool APlayerBase::DodgeStart(float Time)
+{
+    if (!Super::DodgeStart(Time))
+    {
+        return false;
+    }
+
+    if (!MovementComp)
+    {
+        return false;
+    }
+
+    // 회피 중 입력 제한, 애니메이션의 OnComplete/OnCanceled에서 다시 false로 전환
+    bIsMoveLockedWhileDodging = true;
+
+    // 지면마찰력을 0으로 변경
+    MovementComp->GroundFriction = 0.0f;
+
+    // 캐릭터 전방 벡터 구하기
+    FVector ForwardDir = GetActorForwardVector();   
+
+    // 전진하는 힘과 방향 계산
+    FVector DashVelocity = ForwardDir * DodgeVelocity;
+
+    // Z값을 현재 플레이어의 Z값으로 바꾸고 적용
+    DashVelocity.Z = MovementComp->Velocity.Z;
+    MovementComp->Velocity = DashVelocity;
+
+    return true;
+}
+
+void APlayerBase::DodgeEnd()
+{
+    Super::DodgeEnd();
+
+    if (!MovementComp)
+    {
+        return;
+    }
+
+    MovementComp->GroundFriction = SavedGroundFriction;
 }
 
 bool APlayerBase::IsCharacterCanAction()

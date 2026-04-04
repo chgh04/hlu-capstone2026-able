@@ -31,21 +31,14 @@ void ADefaultCharBase::BeginPlay()
 
     // 공격 박스 비활성화
     AttackBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-    // 델리게이트 바인딩
-    if (HealthComponent)
-    {   
-        // HealthComponent의 FOnTakeDamageSignature와 바인딩 하여 피격 정보를 받음
-        HealthComponent->OnTakeDamage.AddDynamic(this, &ADefaultCharBase::GetHit);
-    }
 }
 
-void ADefaultCharBase::ReceiveDamage_Implementation(const FDamageData& DamageData)
+void ADefaultCharBase::ReceiveDamage_Implementation(const float DamageAmount)
 {
     // HealthComponent가 유효하면 체력 감소 처리
     if (HealthComponent)
     {
-        HealthComponent->ReduceHealth(DamageData);
+        HealthComponent->ReduceHealth(DamageAmount);
     }
 
     // TODO: 피격 방향 넉백, 시선 전환 등
@@ -67,23 +60,14 @@ float ADefaultCharBase::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 {
     float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
     
-    // 무적상태라면 피해데이터를 컴포넌트로 전달하지 않고 즉시 리턴
-    if (bIsInvincible)
-    {
-        return ActualDamage;
-    }
-
     // 인터페이스 전달을 위한 구조체 선언 및 초기화
     FDamageData Data;
     Data.DamageAmount = ActualDamage;
     Data.DamageCauser = DamageCauser;
     Data.HitDirection = (GetActorLocation() - DamageCauser->GetActorLocation()).GetSafeNormal();
 
-    // IDamageable::ReceiveDamage로 연결 후 데이터 전달
-    if (this->Implements<UDamageable>())
-    {
-        IDamageable::Execute_ReceiveDamage(this, Data);
-    }
+    // 피격 관리 함수 호출
+    bool bIsHit = GetHit(Data);
 
     return ActualDamage;
 }
@@ -104,7 +88,6 @@ void ADefaultCharBase::TryAttack()
         return;
     }
 
-    //bIsAttacking = true;
     Attack();
 }
 
@@ -162,10 +145,47 @@ void ADefaultCharBase::SetDefaultDamage(float Amount)
     DefaultDamage = Amount;
 }
 
-void ADefaultCharBase::GetHit(const FDamageData& DamageData)
-{
+bool ADefaultCharBase::GetHit(const FDamageData& DamageData)
+{   
+    // 1. 무적상태일때의 판정
+    if (bIsInvincible && !DamageData.bIgnoreInvincible)
+    {   
+        UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Is Invincible!"));
+
+        // 무적상태이지만, 공격이 무적을 무시할 경우(낙하데미지와 같은 환경데미지) 즉시 데미지 적용 및 리턴
+        if (DamageData.bIgnoreInvincible)
+        {
+            // IDamageable::ReceiveDamage로 연결 후 데이터 전달
+            if (this->Implements<UDamageable>())
+            {   
+                UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Invincible ignored!"));
+                IDamageable::Execute_ReceiveDamage(this, DamageData.DamageAmount);
+            }
+            return true;
+        }
+
+        // 무적상태일경우 리턴
+        return false;
+    }
+
+    // 2. 회피중일때의 판정
+    if (bIsDodging)
+    {   
+        // 받은 데미지가 회피 불가능한 속성(장판, 기믹공격)이라면, 회피를 무시하고 피해를 입힘
+        if (DamageData.bIgnoreDodge)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Dodge ignored!"));
+        }
+        // 회피 가능 공격의 경우
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Dodge success!"));
+            return false;
+        }
+    }
+
     // 피격 상태 진입
-    UE_LOG(LogTemp, Warning, TEXT("C++: Get Hit!(DefaultCharBase)"));
+    UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Get Hit!"));
 
     // 넉백에 면역이 아닌 경우에
     if (!bIsKnockBackImmune)
@@ -177,6 +197,13 @@ void ADefaultCharBase::GetHit(const FDamageData& DamageData)
         PlayHitAnimation();
     }
 
+    // IDamageable::ReceiveDamage로 연결 후 데이터 전달 (실제 피해 적용)
+    if (this->Implements<UDamageable>())
+    {
+        IDamageable::Execute_ReceiveDamage(this, DamageData.DamageAmount);
+    }
+
+    return true;
 }
 
 void ADefaultCharBase::PlayKnockBack(const FDamageData& DamageData)
@@ -187,9 +214,57 @@ void ADefaultCharBase::PlayKnockBack(const FDamageData& DamageData)
     LaunchCharacter(LaunchVelocity, true, true); // 넉백 적용
 }
 
+bool ADefaultCharBase::DodgeStart(float Time)
+{
+    if (!IsCharacterCanAction() || bIsAttacking || !bCanDodge)
+    {
+        return false;
+    }
+
+    // 쿨타임 적용
+    bCanDodge = false;
+
+    // 회피상태 활성화
+    bIsDodging = true;
+
+    // 기존 회피 타이머가 있다면 강제 초기화
+    GetWorldTimerManager().ClearTimer(DodgeTimerHandle);
+
+    // DodgeDuration 이후에 회피 종료 타이머 실행
+    GetWorldTimerManager().SetTimer(DodgeTimerHandle, this, &ADefaultCharBase::DodgeEnd, Time, false);
+
+    UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Now Dodge Start!, Duration: %.2f"), Time);
+
+    // 쿨타임 적용 타이머
+    GetWorldTimerManager().SetTimer(
+        DodgeCooldownTimerHandle,
+        this,
+        &ADefaultCharBase::ResetDodgeCooldown,
+        DodgeCooldown,
+        false
+    );
+
+
+    return true;
+}
+
+void ADefaultCharBase::DodgeEnd()
+{   
+    // 회피상태 종료
+    bIsDodging = false;
+
+    UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Now Dodge End!"));
+}
+
+void ADefaultCharBase::ResetDodgeCooldown()
+{
+    bCanDodge = true;
+    UE_LOG(LogTemp, Warning, TEXT("Dodge is Ready again!"));
+}
+
 bool ADefaultCharBase::IsCharacterCanAction()
 {
-    bool bIsCanAct = !(bIsKnockBack || bIsDead);
+    bool bIsCanAct = !(bIsKnockBack || bIsDead || bIsDodging);
 
     return bIsCanAct;
 }

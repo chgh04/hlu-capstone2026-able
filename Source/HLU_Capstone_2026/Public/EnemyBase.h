@@ -50,7 +50,7 @@ protected:
     // 공격 대상을 구분하는 함수(플레이어) 구체화
     virtual bool CanAttackTarget(AActor* Target) const;
 
-    virtual void GetHit(const FDamageData& DamageData) override;
+    virtual bool GetHit(const FDamageData& DamageData) override;
 
     // 공격 사거리, TODO: Attack Overlap Box와 같은 사이즈로 전환
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")

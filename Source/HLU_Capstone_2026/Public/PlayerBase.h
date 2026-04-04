@@ -47,9 +47,13 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Combat")
     float HitStopTime = 0.05f;
 
+    // HitStop(역경직) 감속 계수
+    UPROPERTY(EditDefaultsOnly, Category = "Combat")
+    float HitStopDilation = 0.05f;
+
     // HitStop(역경직) 및 피격 시 월드 타이머 짧게 중단
     UFUNCTION(BlueprintCallable, Category = "Combat")
-    void ApplyHitStop(float time);
+    void ApplyHitStop(float time, float dilation);
 
     // 공격 시 전진 거리
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
@@ -103,13 +107,17 @@ private:
 // 피격 관련 함수/변수
 protected:
     // 부모클래스에서 상속받아 사용
-    virtual void GetHit(const FDamageData& DamageData) override;
+    virtual bool GetHit(const FDamageData& DamageData) override;
 
     // 플레이어 피격무적 시간 변수
     UPROPERTY(EditDefaultsOnly, Category = "Combat")
     float HitInvincibleTime = 1.0f;
 
-// 플레이어 이동 관련 함수/변수
+// 플레이어 이동/회피/무적 관련 함수/변수
+private:
+    // 플레이어 MovementComponent
+    class UCharacterMovementComponent* MovementComp = nullptr;
+
 protected:
     // 점프 시도
     UFUNCTION(BlueprintCallable, Category = "Player_Movement")
@@ -125,7 +133,25 @@ protected:
 
     // 애니메이션 이벤트에서 호출할 전진 스텝 함수 
     UFUNCTION(BlueprintCallable, Category = "Combat")
-    void StepForward(float StepForce = 800.0f);
+    void StepForward(float StepForce = 200.0f);
+
+    // 플레이어 회피 시 전진성
+    UPROPERTY(EditDefaultsOnly, Category = "Combat")
+    float DodgeVelocity = 500.0f;
+
+    // 캐릭터의 지면마찰력 저장 변수
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+    float SavedGroundFriction;
+
+    // 플레이어 회피함수 재정의
+    virtual bool DodgeStart(float Time) override;
+
+    // 플레이어 회피종료함수 재저의
+    virtual void DodgeEnd() override;
+
+    // 회피 애니메이션 중 입력 제한 플래그
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
+    bool bIsMoveLockedWhileDodging = false;
 
 
 // 기타 추가 기능

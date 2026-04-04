@@ -37,6 +37,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedSignature, float, C
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeathSignature);
 
 // 피해를 받았을 때 피해 정보를 피해자에게 전달 (Actor별 피해 방식을 다르게 하기 위함)
+// 실제 플레이어에게 주는 피해 및 각종 영향을 전달합니다. 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTakeDamageSignature, const FDamageData&, DamageData);
 
 
@@ -60,13 +61,11 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Damage_Events")
     FOnDeathSignature OnDeath;
 
-    FOnTakeDamageSignature OnTakeDamage;
-
 // 체력 관련 함수 및 변수 -------------------
 public:
     //ReduceHealth - 체력 감소 함수 IDamageable::ReceiveDamage_Implementation 내부에서 호출. 체력이 0이 되면 bIsDead = true 후 오너의 OnDeath 호출
     UFUNCTION(BlueprintCallable, Category = "Health")
-    void ReduceHealth(const FDamageData& DamageData);
+    void ReduceHealth(const float DamageAmount);
 
     // 현재 체력 반환 - UI나 AI에서 참조용
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Health")

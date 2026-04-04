@@ -27,12 +27,13 @@ protected:
 // 인터페이스 구현 및 상속 -------------------
 public:
 	 // IDamageable 인터페이스 구현
-	virtual void ReceiveDamage_Implementation(const FDamageData& DamageData) override;
+	virtual void ReceiveDamage_Implementation(const float DamageAmount) override;
 
 	// IDamageable 인터페이스 구현
 	virtual void OnDeath_Implementation() override;
 
-	// IDamageable::ReceiveDamage로 연결. 외부에서 ApplyDamage 호출 시 이 함수가 자동으로 실행됨.
+	// 외부에서 ApplyDamage 호출 시 이 함수가 자동으로 실행됨. 
+	// !중요! 이 함수는 캐릭터에게 직접적인 영향을 주지 않고, 연결된 컴포넌트에 인터페이스를 통해 데이터를 전달하는 역할만 수행합니다. 
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 	// 태그가 저장되는 변수 **** 디테일창에서 태그 바꾸면 됨!!! ****
@@ -96,25 +97,18 @@ protected:
 	void SetDefaultDamage(float Amount);
 
 	// 캐릭터 기본 공격력
-	UPROPERTY(EditAnywhere, Category = "Combat")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	float DefaultDamage = 1;
 
 	// 캐릭터가 공격 도중인지 판단
-	UPROPERTY(BlueprintReadWrite, Category = "Combat")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
 	bool bIsAttacking = false;
-
-	// 캐릭터가 무적상태인지(피격 후 혹은 특정 패턴) 판단
-	UPROPERTY(EditAnywhere, Category = "Combat")
-	bool bIsInvincible = false;
 
 // 피해 관련 함수/변수 -------------------
 protected:
-	// 피격받을때 호출 (C++ / 블루프린트 구현 - Attack처럼)
+	// 피격받을때(TakeDamage) 호출, 모든 피해 관련 판정을 수행, 피격이 유효했다면 true, 아니라면 false 반환
 	UFUNCTION()
-	virtual void GetHit(const FDamageData& DamageData);
-
-	// 피격시 경직 시간 관리 핸들러
-	FTimerHandle HitStunTimerHandle;
+	virtual bool GetHit(const FDamageData& DamageData);
 
 	// 피격시 경직되는 시간, 적은 경직 플레이어는 무적
 	float StunDuration = 0.5f;
@@ -139,11 +133,53 @@ protected:
 	float KnockbackStrength = 500.f;
 
 	// 캐릭터 사망상태 플래그
-	UPROPERTY(EditAnywhere, Category = "Status")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Status")
 	bool bIsDead = false;
+
+// 이동/회피/무적 관련 함수/변수
+protected:
+	// 캐릭터가 무적상태인지(피격 후 혹은 특정 패턴) 판단
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Status")
+	bool bIsInvincible = false;
+
+	// 캐릭터가 회피상태인지 판단
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
+	bool bIsDodging = false;
+
+	// 캐릭터가 회피 가능한 상태인지
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	bool bCanDodge = true;
+
+	// 캐릭터의 회피 대기시간
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat")
+	float DodgeCooldown = 0.6f;
+
+	// 회피 판정 시간
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+	float DodgeDuration = 0.3f;
+
+	// 회피 실행 함수
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	virtual bool DodgeStart(float Time);
+
+	// 회피 종료 함수 (타이머 콜백)
+	UFUNCTION()
+	virtual void DodgeEnd();
+
+	// 회피 쿨타임 종료 함수
+	void ResetDodgeCooldown();
 
 // 기타 추가 기능
 protected:
+	// 회피무적 타이머 관리자
+	FTimerHandle DodgeTimerHandle;
+
+	// 회피 쿨타임 관리를 위한 타이머 핸들
+	FTimerHandle DodgeCooldownTimerHandle;
+
+	// 피격시 경직 시간 관리 핸들러
+	FTimerHandle HitStunTimerHandle;
+
 	// 해당 캐릭터가 움직일 수 있는지 확인하는 함수, 자식에서 재정의하여 사용 가능
 	// 캐릭터가 행동 가능한 상태라면 true, 아니라면 false 반환합니다. 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Status")

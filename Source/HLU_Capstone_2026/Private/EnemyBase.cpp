@@ -109,11 +109,13 @@ bool AEnemyBase::CanAttackTarget(AActor* Target) const
     return TagInterface->HasMatchingGameplayTag(PlayerTag);
 }
 
-void AEnemyBase::GetHit(const FDamageData& DamageData)
+bool AEnemyBase::GetHit(const FDamageData& DamageData)
 {
-    // 부모 로직 실행, 부모 로직에선 기본 넉백 적용
-    // 이게 무슨코드더라? HealthComponent와 연결되어 피해를 받을 경우 피해 정보를 받아옴
-    Super::GetHit(DamageData);
+    // 부모 로직 실행, 피격이 유효하지 않았다면 리턴
+    if (!Super::GetHit(DamageData))
+    {
+        return false;
+    }
 
     // 현재 상태를 Hit으로 변겅
     CurrentState = EEnemyState::Hit;
@@ -127,6 +129,8 @@ void AEnemyBase::GetHit(const FDamageData& DamageData)
     // 타이머 설정 및 타이머 이후 호출 함수 지정(ResetHitStateOnSimpleFSM)
     GetWorldTimerManager().ClearTimer(HitStunTimerHandle);
     GetWorldTimerManager().SetTimer(HitStunTimerHandle, this, &AEnemyBase::ResetHitStateOnSimpleFSM, StunDuration, false);
+
+    return true;
 }
 
 void AEnemyBase::OnDeath_Implementation()

@@ -41,7 +41,7 @@ class HLU_CAPSTONE_2026_API IDamageable
 
 public:
     UFUNCTION(BlueprintNativeEvent, Category = "Damage")
-    void ReceiveDamage(const FDamageData& DamageData); //데미지 수신 함수 - 액터의 TakeDamage가 호출될 때 내부에서 이 함수를 호출 
+    void ReceiveDamage(const float DamageAmount); //데미지 수신 함수 - 액터의 TakeDamage가 호출될 때 내부에서 이 함수를 호출 
 
     UFUNCTION(BlueprintNativeEvent, Category = "Damage")
     void OnDeath();//사망 처리 함수 - HealthComponent에서 체력이 0이 됐을 때 오너 액터에게 직접 호출
