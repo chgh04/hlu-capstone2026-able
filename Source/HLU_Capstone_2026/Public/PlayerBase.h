@@ -51,13 +51,6 @@ protected:
     UFUNCTION(BlueprintCallable, Category = "Combat")
     void ApplyHitStop(float time);
 
-    // AttackDelay 적용 함수
-    UFUNCTION(BlueprintCallable, Category = "Combat")
-    void PlayerAttackDelay(float Time);
-
-    // 공격 딜레이 후 다시 공격이 가능하도록 전환
-    void PlayerAttackDelayReset();
-
     // 공격 시 전진 거리
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
     float AttackStepForce = 500.f;
@@ -140,9 +133,6 @@ protected:
     // 플레이어가 이동/공격을 제한하는 이상상태에 있는지 판단하는 함수
     // 행동 가능하면 true, 행동이 불가능하면 false를 반환
     virtual bool IsCharacterCanAction() override;
-
-    // 플레이어 공격 관련 타이머 관리자
-    FTimerHandle PlayerTimerHandle;
 
     // 플레이어 콤보 관련 타이머 관리자
     FTimerHandle ComboTimerHandle;
