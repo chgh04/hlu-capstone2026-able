@@ -71,7 +71,7 @@ void APlayerBase::TryAttack()
 
     // 4. 첫 번째 공격일 경우
     ComboCount = 0;
-    //UE_LOG(LogTemp, Warning, TEXT("C++ First Attack Started"));
+    UE_LOG(LogTemp, Warning, TEXT("C++ First Attack Started"));
     Attack();
 }
 
@@ -143,6 +143,24 @@ void APlayerBase::ResetCombo()
 
     // UE_LOG(LogTemp, Warning, TEXT("Reset Combo Called!"));
 
+    // 회피 선입력이 있는지 판단, 회피 선입력이 눌려질 시 선입력된 공격은 취소
+    if (bSaveDodge && bCanDodge)
+    {   
+        UE_LOG(LogTemp, Warning, TEXT("Dodge Input Bufferd After Attack!"));
+        bSaveDodge = false;
+        bSaveAttack = false;
+
+        // 즉시 공격상태 초기화
+        EndAttackState();
+
+        // 모든 콤보 변수 초기화
+        FullResetCombo();
+
+        // 회피 시작
+        DodgeStart(DodgeDuration);
+        return;
+    }
+
     // 선입력 되었다면 즉시 다음 공격 실행
     if (bSaveAttack)
     {   
@@ -160,6 +178,8 @@ void APlayerBase::ResetCombo()
     
     // 공격상태 초기화 / 공격 연계 가능 구간 플래그 초기화
     EndAttackState();
+
+    UE_LOG(LogTemp, Warning, TEXT("Combo State End"));
 
     // SecondAttackWaitTime 이후에 모든 콤보 플래그 리셋 함수를 호출
     //UE_LOG(LogTemp, Warning, TEXT("C++ Player Wait Next Input, WaitTime: %.2f"), SecondAttackWaitTime);
@@ -179,6 +199,11 @@ void APlayerBase::EndAttackState()
 
     // 공격 연계 가능 구간 플래그 초기화
     bIgnoreSaveAttack = true;
+}
+
+bool APlayerBase::IdleAttackWaitTrasitionFlag()
+{
+    return bIsWaitNextAttackInput || bIsAttacking;
 }
 
 void APlayerBase::FullResetCombo()
@@ -288,22 +313,64 @@ void APlayerBase::StepForward(float StepForce)
 
     MovementComp->Velocity = DashVelocity;
 
-    UE_LOG(LogTemp, Warning, TEXT("Current Speed: %f, Final Force: %f, Threshold: %f"), SavedAttackSpeed, FinalForce, RunThreshold);
+    //UE_LOG(LogTemp, Warning, TEXT("Current Speed: %f, Final Force: %f, Threshold: %f"), SavedAttackSpeed, FinalForce, RunThreshold);
 }
 
-bool APlayerBase::DodgeStart(float Time)
+bool APlayerBase::TryDodge(float Time)
 {
-    if (!Super::DodgeStart(Time))
+    // 부모클래스 함수를 호출하지 않습니다. 
+    /*if (!Super::TryDodge(Time))
     {
         return false;
+    }*/
+
+    UE_LOG(LogTemp, Warning, TEXT("Dodge Tried!"));
+
+    // 만약 회피가 불가능한 상황이면 회피하지 않고 false 리턴
+    if (!IsCharacterCanAction())
+    {   
+        UE_LOG(LogTemp, Warning, TEXT("Dodge Ignored! Character Cannot Action!"));
+        return false;
     }
+
+    // 공격 도중 선입력이 있었거나 회피 불가능한 상황에서 입력이 있었을 경우
+    if (bIsAttacking || !bCanDodge)
+    {   
+        // 회피 선입력 트리거를 활성화
+        bSaveDodge = true;
+        UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffered"));
+
+        // 0.n초 뒤 예약 자동 해제
+        FTimerHandle BufferTimer;
+        GetWorldTimerManager().SetTimer(BufferTimer, FTimerDelegate::CreateLambda([this]() {
+                bSaveDodge = false;
+                UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffer Canceled"));
+            }), 0.3f, false);
+
+        // 회피가 실행되지 않았으니 false 리턴
+        return false;
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("Dodge Excuted!"));
+    // 문제가 없다면 회피 호출 후 true 리턴
+    DodgeStart(Time);
+    return true;
+}
+
+void APlayerBase::DodgeStart(float Time)
+{   
+    // 부모함수 호출
+    Super::DodgeStart(Time);
+
+    // 실행 시 선입력 플래그 해제
+    bSaveDodge = false;
 
     if (!MovementComp)
     {
-        return false;
+        return;
     }
 
-    // 회피 중 입력 제한, 애니메이션의 OnComplete/OnCanceled에서 다시 false로 전환
+    // 회피 중 입력 제한
     bIsMoveLockedWhileDodging = true;
 
     // 지면마찰력을 0으로 변경
@@ -318,8 +385,6 @@ bool APlayerBase::DodgeStart(float Time)
     // Z값을 현재 플레이어의 Z값으로 바꾸고 적용
     DashVelocity.Z = MovementComp->Velocity.Z;
     MovementComp->Velocity = DashVelocity;
-
-    return true;
 }
 
 void APlayerBase::DodgeEnd()
@@ -332,6 +397,39 @@ void APlayerBase::DodgeEnd()
     }
 
     MovementComp->GroundFriction = SavedGroundFriction;
+}
+
+void APlayerBase::ResetDodgeCooldown()
+{
+    Super::ResetDodgeCooldown();
+
+    if (bSaveDodge)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("ResetDodgeCooldown: bSaveDodge"));
+    }
+    if (!bIsAttacking)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("ResetDodgeCooldown: !bSIsAttacking"));
+    }
+    if (IsCharacterCanAction())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("ResetDodgeCooldown: IsCharacterCanAction()"));
+    }
+
+
+
+    // 선입력된 회피 입력이 있다면 즉시 회피 시작
+    if (bSaveDodge && !bIsAttacking && IsCharacterCanAction())
+    {   
+        UE_LOG(LogTemp, Warning, TEXT("Buffered Dodge Excuted!"));
+        bSaveDodge = false;
+        DodgeStart(DodgeDuration);
+    }
+}
+
+void APlayerBase::UnlockMoveInputAfterDodge()
+{
+    bIsMoveLockedWhileDodging = false;
 }
 
 bool APlayerBase::IsCharacterCanAction()

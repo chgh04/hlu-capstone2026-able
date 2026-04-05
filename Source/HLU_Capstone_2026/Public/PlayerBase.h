@@ -73,7 +73,7 @@ protected:
     UFUNCTION(BlueprintCallable, Category = "Combat")
     void CheckCombo();
 
-    // 플레이어의 공격 종료 신호 전달 함수 (ABP의 노티파이에서 호출함)
+    // 플레이어의 콤보공격이 연계/취소되었을때 및 공격 도중의 선입력 관리
     UFUNCTION(BlueprintCallable, Category = "Combat")
     void ResetCombo();
 
@@ -94,11 +94,16 @@ protected:
     float SecondAttackWaitTime = 0.2f;
 
     // 첫 번째 공격 이후 공격 대기상태 판단, 애니메이션 종료 후 입력 판단에 사용됩니다. 
-    UPROPERTY(BlueprintReadWrite, Category = "Combat")
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
     bool bIsWaitNextAttackInput = false;
 
-    // 일반공격/피격 이후 상태 복구 함수 (부모 클래스 함수 재사용)
+    // 일반공격/피격 이후 상태 복구 함수 (부모 클래스 함수 재사용), 각 공격에 대한 종료를 정의
     virtual void EndAttackState() override;
+
+    // Idle<->AttackWait 상태전환 전달용 함수
+public:
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Combat")
+    bool IdleAttackWaitTrasitionFlag();
 
 private:
     // 콤보 초기화 변수가 포함된 함수
@@ -143,15 +148,28 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
     float SavedGroundFriction;
 
+    virtual bool TryDodge(float Time) override;
+
     // 플레이어 회피함수 재정의
-    virtual bool DodgeStart(float Time) override;
+    virtual void DodgeStart(float Time) override;
 
     // 플레이어 회피종료함수 재저의
     virtual void DodgeEnd() override;
 
+    // 회피 쿨타임 초기화 함수 재정의
+    virtual void ResetDodgeCooldown() override;
+
     // 회피 애니메이션 중 입력 제한 플래그
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
     bool bIsMoveLockedWhileDodging = false;
+
+    // 회피 선입력 예약 플래그
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+    bool bSaveDodge = false;
+
+    // 회피 이후 재입력 허용 플래그 전환 함수
+    UFUNCTION(BlueprintCallable, Category = "Combat")
+    void UnlockMoveInputAfterDodge();
 
 
 // 기타 추가 기능

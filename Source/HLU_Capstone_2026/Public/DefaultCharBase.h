@@ -146,7 +146,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
 	bool bIsDodging = false;
 
-	// 캐릭터가 회피 가능한 상태인지
+	// 캐릭터가 회피 가능한 상태인지, (클타임 적용/미적용 상태)
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	bool bCanDodge = true;
 
@@ -155,19 +155,27 @@ protected:
 	float DodgeCooldown = 0.6f;
 
 	// 회피 판정 시간
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	float DodgeDuration = 0.3f;
+
+	// 회피 입력 시 판단 함수
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	virtual bool TryDodge(float Time);
 
 	// 회피 실행 함수
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	virtual bool DodgeStart(float Time);
+	virtual void DodgeStart(float Time);
 
 	// 회피 종료 함수 (타이머 콜백)
 	UFUNCTION()
 	virtual void DodgeEnd();
 
 	// 회피 쿨타임 종료 함수
-	void ResetDodgeCooldown();
+	virtual void ResetDodgeCooldown();
+	
+	// 회피 애니메이션 호출 이벤트, 없다면 무시되지만 !!반드시 부모 BP가 아닌 가장 자식인 BP에서 구현해야 합니다!!
+	UFUNCTION(BlueprintImplementableEvent, Category = "Combat")
+	void PlayDodgeAnimation();
 
 // 기타 추가 기능
 protected:

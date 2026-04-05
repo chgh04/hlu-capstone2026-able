@@ -1,3 +1,6 @@
-2026/04/05-04:19:04.526 1300 Reusing MANIFEST E:\Unreal\hlu-capstone2026-able\Saved\webcache_6613\Default\Local Storage\leveldb/MANIFEST-000001
-2026/04/05-04:19:04.531 1300 Recovering log #52
-2026/04/05-04:19:04.532 1300 Reusing old log E:\Unreal\hlu-capstone2026-able\Saved\webcache_6613\Default\Local Storage\leveldb/000052.log 
+2026/04/05-18:43:33.309 23c8 Reusing MANIFEST E:\Unreal\hlu-capstone2026-able\Saved\webcache_6613\Default\Local Storage\leveldb/MANIFEST-000001
+2026/04/05-18:43:33.312 23c8 Recovering log #58
+2026/04/05-18:43:33.313 23c8 Reusing old log E:\Unreal\hlu-capstone2026-able\Saved\webcache_6613\Default\Local Storage\leveldb/000058.log 
+2026/04/05-19:06:40.238 2f10 Level-0 table #63: started
+2026/04/05-19:06:40.241 2f10 Level-0 table #63: 75186 bytes OK
+2026/04/05-19:06:40.241 2f10 Delete type=0 #58

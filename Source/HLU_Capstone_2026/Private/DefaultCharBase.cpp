@@ -214,18 +214,29 @@ void ADefaultCharBase::PlayKnockBack(const FDamageData& DamageData)
     LaunchCharacter(LaunchVelocity, true, true); // 넉백 적용
 }
 
-bool ADefaultCharBase::DodgeStart(float Time)
-{
+bool ADefaultCharBase::TryDodge(float Time)
+{   
+    // 만약 회피가 불가능한 상황이면 회피하지 않고 false 리턴
     if (!IsCharacterCanAction() || bIsAttacking || !bCanDodge)
-    {
+    {   
         return false;
     }
+    
+    // 회피 가능하면 회피함수 호출
+    DodgeStart(Time);
+    return true;
+}
 
+void ADefaultCharBase::DodgeStart(float Time)
+{
     // 쿨타임 적용
     bCanDodge = false;
 
     // 회피상태 활성화
     bIsDodging = true;
+
+    // 회피 애니메이션 재생
+    PlayDodgeAnimation();
 
     // 기존 회피 타이머가 있다면 강제 초기화
     GetWorldTimerManager().ClearTimer(DodgeTimerHandle);
@@ -233,7 +244,7 @@ bool ADefaultCharBase::DodgeStart(float Time)
     // DodgeDuration 이후에 회피 종료 타이머 실행
     GetWorldTimerManager().SetTimer(DodgeTimerHandle, this, &ADefaultCharBase::DodgeEnd, Time, false);
 
-    UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Now Dodge Start!, Duration: %.2f"), Time);
+    //UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Now Dodge Start!, Duration: %.2f"), Time);
 
     // 쿨타임 적용 타이머
     GetWorldTimerManager().SetTimer(
@@ -243,9 +254,6 @@ bool ADefaultCharBase::DodgeStart(float Time)
         DodgeCooldown,
         false
     );
-
-
-    return true;
 }
 
 void ADefaultCharBase::DodgeEnd()
