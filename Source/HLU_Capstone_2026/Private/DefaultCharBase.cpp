@@ -2,7 +2,8 @@
 #include "HealthComponent.h"
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
-
+#include "Engine/DamageEvents.h"
+#include "CustomDamageType.h"
 
 ADefaultCharBase::ADefaultCharBase()
 {
@@ -71,6 +72,21 @@ float ADefaultCharBase::TakeDamage(float DamageAmount, FDamageEvent const& Damag
     Data.DamageAmount = ActualDamage;
     Data.DamageCauser = DamageCauser;
     Data.HitDirection = (GetActorLocation() - DamageCauser->GetActorLocation()).GetSafeNormal();
+
+    // 인자로 받은 데미지 타입 추출
+    if (DamageEvent.DamageTypeClass)
+    {   
+        // 커스텀 데미지 타입으로 캐스팅
+        UCustomDamageType* CustomDamage = Cast<UCustomDamageType>(DamageEvent.DamageTypeClass->GetDefaultObject());
+        
+        // 캐스팅된 커스텀 데미지 설정값을 DamageData로 복사
+        if (CustomDamage)
+        {
+            Data.bIgnoreInvincible = CustomDamage->bIgnoreInvincible;
+            Data.bIgnoreDodge = CustomDamage->bIgnoreDodge;
+            Data.bIgnoreGuard = CustomDamage->bIgnoreGuard;
+        }
+    }
 
     // 피격 관리 함수 호출
     bool bIsHit = GetHit(Data);
@@ -146,18 +162,40 @@ void ADefaultCharBase::OnAttackBoxOverlap(UPrimitiveComponent* OverlappedComp, A
         {
             THitActors.Add(OtherActor);
 
-            // 적에게 피해 적용
-            float ActualDamage = UGameplayStatics::ApplyDamage(OtherActor, DefaultDamage, GetController(), this, UDamageType::StaticClass());
-
-            if (ActualDamage > 0.0f)
-            {   
-                UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Apply Hit Stop Custom"));
-                // 자신에게 히트스탑 적용
-                ApplyHitStopCustom(0.05f, 0.01f);
-            }
+            ExecuteAttackHit(OtherActor, CurrentAttackDamageType);
         }
     }
 
+}
+
+void ADefaultCharBase::ExecuteAttackHit(AActor* TargetActor, TSubclassOf<class UCustomDamageType> DamageType, float DamageMultiplier)
+{
+    if (!TargetActor)
+    {
+        return;
+    }
+
+    // 인자로 받은 데미지타입 지정
+    TSubclassOf<UCustomDamageType> DamageTypeToUse = DamageType;
+
+    // 디테일 패널에서 데미지 타입을 정하지 않았거나 별도의 데미지 타입 지정이 없다면 기본 데미지 타입 적용(무적,회피,가드 영향을 받는 상태)
+    if (!DamageTypeToUse)
+    {
+        DamageTypeToUse = UCustomDamageType::StaticClass();
+    }
+
+    // 피해량 배수 지정
+    float FinalDamage = DefaultDamage * DamageMultiplier;
+
+    // 적에게 피해 적용
+    float ActualDamage = UGameplayStatics::ApplyDamage(TargetActor, FinalDamage, GetController(), this, DamageTypeToUse);
+
+    if (ActualDamage > 0.0f)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Apply Hit Stop Custom"));
+        // 자신에게 히트스탑 적용
+        ApplyHitStopCustom(0.05f, 0.01f);
+    }
 }
 
 void ADefaultCharBase::SetDefaultDamage(float Amount)
@@ -232,6 +270,31 @@ bool ADefaultCharBase::GetHit(const FDamageData& DamageData)
             UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Dodge success!"));
             return false;
         }
+    }
+
+    // 3. 가드 판정
+    if (bIsGuarding && DamageData.DamageCauser)
+    {   
+        // 캐릭터가 바라보는 전방 벡터
+        FVector Forward = GetActorForwardVector();
+
+        // 캐릭터부터 공격자를 향하는 방향벡터, 높이차이는 무시
+        FVector DirToAttacker = (DamageData.DamageCauser->GetActorLocation() - GetActorLocation());
+        DirToAttacker.Z = 0.0f;
+        DirToAttacker = DirToAttacker.GetSafeNormal();
+        
+        // 두 벡터의 내적 계산, 두 벡터의 내적이 0보다 크면 전방에 공격자가 있다는 의미
+        float DotResult = FVector::DotProduct(Forward, DirToAttacker);
+
+        // 가드 판정 성공
+        if (DotResult > 0.0f)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("C++: Guard Success!"));
+
+
+
+            return false;
+        }  
     }
 
     // 피격 상태 진입

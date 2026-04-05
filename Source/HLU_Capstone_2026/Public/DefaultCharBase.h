@@ -82,11 +82,15 @@ protected:
 	// 공격 대상을 구분하는 함수(적/플레이어), OnAttackBoxOverlap에서 호출됩니다. 
 	virtual bool CanAttackTarget(AActor* Target) const;
 
-	// 공격 박스 Overlap 이벤트, BasePlayer 클래스 완성 후 캐스팅해서 데미지 적용 예정.
+	// 공격 박스 Overlap 이벤트, 공격한 적에 대한 충돌 판정 및 필터링 수행, 일반적으로 기본 공격에 해당되는 공격에만 사용
 	UFUNCTION()
 	void OnAttackBoxOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
 		bool bFromSweep, const FHitResult& SweepResult);
+
+	// 공격한 적에 대한 연산 수행, 피해 액터, 공격 타입, 공격 배수를 지정합니다. 기본공격 외 다양한 공격 패턴에서 호출하여 사용 가능
+	UFUNCTION(BlueprintCallable, Category = "Comabat")
+	virtual void ExecuteAttackHit(AActor* TargetActor, TSubclassOf<class UCustomDamageType> DamageType, float DamageMultiplier = 1.0f);
 	
 	// 공격력 리턴
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Combat")
@@ -111,6 +115,10 @@ protected:
 	// HitStop(역경직) 및 피격 시 액터 타이머 짧게 중단(해당 액터에게만 적용)
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void ApplyHitStopCustom(float Duration, float Dilation);
+
+	// 에디터 디테일 패널에서 선택할 수 있는 데미지 타입 변수, 기본적으로 적용되는 공격 판정
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	TSubclassOf<class UCustomDamageType> CurrentAttackDamageType;
 
 // 피해 관련 함수/변수 -------------------
 protected:
@@ -188,6 +196,16 @@ protected:
 	// 회피 애니메이션 호출 이벤트, 없다면 무시되지만 !!반드시 부모 BP가 아닌 가장 자식인 BP에서 구현해야 합니다!!
 	UFUNCTION(BlueprintImplementableEvent, Category = "Combat")
 	void PlayDodgeAnimation();
+
+// 가드 관련 함수/변수
+protected:
+	// 가드 플래그
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	bool bIsGuarding = false;
+	
+	// 캐릭터 가드 애니메이션 재생
+	UFUNCTION(BlueprintImplementableEvent, Category = "Combat")
+	void PlayGuardAnimation();
 
 // 기타 추가 기능
 protected:
