@@ -57,7 +57,13 @@ void ADefaultCharBase::OnDeath_Implementation()
 }
 
 float ADefaultCharBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
-{
+{   
+    // 사망상태라면 즉시 리턴
+    if (bIsDead)
+    {
+        return 0;
+    }
+
     float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
     
     // 인터페이스 전달을 위한 구조체 선언 및 초기화

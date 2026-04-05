@@ -71,7 +71,7 @@ void APlayerBase::TryAttack()
 
     // 4. 첫 번째 공격일 경우
     ComboCount = 0;
-    UE_LOG(LogTemp, Warning, TEXT("C++ First Attack Started"));
+    //UE_LOG(LogTemp, Warning, TEXT("C++ First Attack Started"));
     Attack();
 }
 
@@ -79,6 +79,9 @@ void APlayerBase::Attack_Implementation()
 {   
     // 부모 Attack 함수 미실행
     //Super::Attack_Implementation();
+
+    // 애니메이션 재생 전 방향키로 입려된 방향으로 몸을 돌림
+    UpdateFacingDirection();
 
     // 공격 브레이크 전 속도 저장
     SavedAttackSpeed = GetVelocity().Size2D();
@@ -131,7 +134,7 @@ void APlayerBase::ResetCombo()
     // 회피 선입력이 있는지 판단, 회피 선입력이 눌려질 시 선입력된 공격은 취소
     if (bSaveDodge && bCanDodge)
     {   
-        UE_LOG(LogTemp, Warning, TEXT("Dodge Input Bufferd After Attack!"));
+        //UE_LOG(LogTemp, Warning, TEXT("Dodge Input Bufferd After Attack!"));
         bSaveDodge = false;
         bSaveAttack = false;
 
@@ -164,7 +167,7 @@ void APlayerBase::ResetCombo()
     // 공격상태 초기화 / 공격 연계 가능 구간 플래그 초기화
     EndAttackState();
 
-    UE_LOG(LogTemp, Warning, TEXT("Combo State End"));
+    //UE_LOG(LogTemp, Warning, TEXT("Combo State End"));
 
     // SecondAttackWaitTime 이후에 모든 콤보 플래그 리셋 함수를 호출
     //UE_LOG(LogTemp, Warning, TEXT("C++ Player Wait Next Input, WaitTime: %.2f"), SecondAttackWaitTime);
@@ -280,7 +283,7 @@ void APlayerBase::StepForward(float StepForce)
     }
 
     // 달리는 도중의 판단값 설정
-    float RunThreshold = MovementComp->MaxWalkSpeed * 0.8f;
+    float RunThreshold = MovementComp->MaxWalkSpeed * 0.9f;
 
     // 배율 결정
     float SpeedMultiplier = (SavedAttackSpeed > RunThreshold) ? AttackStepForceMultiplierWhileRun : 1.0f;
@@ -309,12 +312,12 @@ bool APlayerBase::TryDodge(float Time)
         return false;
     }*/
 
-    UE_LOG(LogTemp, Warning, TEXT("Dodge Tried!"));
+    //UE_LOG(LogTemp, Warning, TEXT("Dodge Tried!"));
 
     // 만약 회피가 불가능한 상황이면 회피하지 않고 false 리턴
     if (!IsCharacterCanAction())
     {   
-        UE_LOG(LogTemp, Warning, TEXT("Dodge Ignored! Character Cannot Action!"));
+        //UE_LOG(LogTemp, Warning, TEXT("Dodge Ignored! Character Cannot Action!"));
         return false;
     }
 
@@ -323,13 +326,13 @@ bool APlayerBase::TryDodge(float Time)
     {   
         // 회피 선입력 트리거를 활성화
         bSaveDodge = true;
-        UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffered"));
+        //UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffered"));
 
         // 0.n초 뒤 예약 자동 해제
         FTimerHandle BufferTimer;
         GetWorldTimerManager().SetTimer(BufferTimer, FTimerDelegate::CreateLambda([this]() {
                 bSaveDodge = false;
-                UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffer Canceled"));
+                //(LogTemp, Warning, TEXT("Dodge Input Buffer Canceled"));
             }), 0.3f, false);
 
         // 회피가 실행되지 않았으니 false 리턴
@@ -388,25 +391,10 @@ void APlayerBase::ResetDodgeCooldown()
 {
     Super::ResetDodgeCooldown();
 
-    if (bSaveDodge)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("ResetDodgeCooldown: bSaveDodge"));
-    }
-    if (!bIsAttacking)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("ResetDodgeCooldown: !bSIsAttacking"));
-    }
-    if (IsCharacterCanAction())
-    {
-        UE_LOG(LogTemp, Warning, TEXT("ResetDodgeCooldown: IsCharacterCanAction()"));
-    }
-
-
-
     // 선입력된 회피 입력이 있다면 즉시 회피 시작
     if (bSaveDodge && !bIsAttacking && IsCharacterCanAction())
     {   
-        UE_LOG(LogTemp, Warning, TEXT("Buffered Dodge Excuted!"));
+        //UE_LOG(LogTemp, Warning, TEXT("Buffered Dodge Excuted!"));
         bSaveDodge = false;
         DodgeStart(DodgeDuration);
     }
@@ -415,6 +403,18 @@ void APlayerBase::ResetDodgeCooldown()
 void APlayerBase::UnlockMoveInputAfterDodge()
 {
     bIsMoveLockedWhileDodging = false;
+}
+
+void APlayerBase::UpdateFacingDirection()
+{   
+    // 입력 데드존 판단, 근데 키보드는 딱히 의미 없음
+    if (FMath::Abs(CurrentRawInputX) > 0.1f)
+    {   
+        // 입력이 양수면 0도, 음수면 180도 회전
+        FRotator TargetRot = (CurrentRawInputX > 0.f) ? FRotator(0.f, 0.f, 0.f) : FRotator(0.f, 180.f, 0.f);
+
+        SetActorRotation(TargetRot);
+    }
 }
 
 bool APlayerBase::IsCharacterCanAction()

@@ -40,7 +40,7 @@ void AEnemyBase::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    if (!bUseSimpleFSM) return;
+    if (!bUseSimpleFSM || bIsDead) return;
 
     switch (CurrentState)
     {
@@ -76,7 +76,6 @@ void AEnemyBase::Tick(float DeltaTime)
         //UE_LOG(LogTemp, Warning, TEXT("AI: Dead"));
         // 이미 죽었으므로 아무것도 하지 않음
 
-        OnDeath_Implementation();
         break;
     }
 }
@@ -134,7 +133,9 @@ bool AEnemyBase::GetHit(const FDamageData& DamageData)
 }
 
 void AEnemyBase::OnDeath_Implementation()
-{
+{   
+    UE_LOG(LogTemp, Warning, TEXT("AI: Enemy OnDeath Called!"));
+
     // 부모공통로직 실행
     Super::OnDeath_Implementation();
 

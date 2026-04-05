@@ -167,6 +167,13 @@ protected:
     UFUNCTION(BlueprintCallable, Category = "Combat")
     void UnlockMoveInputAfterDodge();
 
+    // 플레이어 입력값 저장 변수
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Player_Movement")
+    float CurrentRawInputX = 0.0f;
+
+    // 플레이어의 방향을 즉시 전환하는 전용 함수
+    void UpdateFacingDirection();
+
 
 // 기타 추가 기능
 protected:

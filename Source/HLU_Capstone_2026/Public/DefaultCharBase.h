@@ -144,6 +144,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Status")
 	bool bIsDead = false;
 
+	// 캐릭터 사망 애니메이션 재생
+	UFUNCTION(BlueprintImplementableEvent, Category = "Status")
+	void PlayDeathAnimation();
+
 // 이동/회피/무적 관련 함수/변수
 protected:
 	// 캐릭터가 무적상태인지(피격 후 혹은 특정 패턴) 판단
