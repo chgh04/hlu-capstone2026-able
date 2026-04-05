@@ -93,4 +93,8 @@ protected:
 private:
     // AI 상태
     EEnemyState CurrentState;
+
+// 기타 추가 기능
+protected:
+    FTimerHandle HitStunTimerHandle;
 };

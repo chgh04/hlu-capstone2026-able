@@ -104,6 +104,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
 	bool bIsAttacking = false;
 
+	// HitStop(역경직) 및 피격 시 월드 타이머 짧게 중단(게임 전체 적용)
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void ApplyHitStopGlobal(float Duration, float Dilation);
+
+	// HitStop(역경직) 및 피격 시 액터 타이머 짧게 중단(해당 액터에게만 적용)
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void ApplyHitStopCustom(float Duration, float Dilation);
+
 // 피해 관련 함수/변수 -------------------
 protected:
 	// 피격받을때(TakeDamage) 호출, 모든 피해 관련 판정을 수행, 피격이 유효했다면 true, 아니라면 false 반환
@@ -184,9 +192,6 @@ protected:
 
 	// 회피 쿨타임 관리를 위한 타이머 핸들
 	FTimerHandle DodgeCooldownTimerHandle;
-
-	// 피격시 경직 시간 관리 핸들러
-	FTimerHandle HitStunTimerHandle;
 
 	// 해당 캐릭터가 움직일 수 있는지 확인하는 함수, 자식에서 재정의하여 사용 가능
 	// 캐릭터가 행동 가능한 상태라면 true, 아니라면 false 반환합니다. 

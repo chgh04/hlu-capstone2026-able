@@ -69,7 +69,14 @@ float ADefaultCharBase::TakeDamage(float DamageAmount, FDamageEvent const& Damag
     // 피격 관리 함수 호출
     bool bIsHit = GetHit(Data);
 
-    return ActualDamage;
+    if (bIsHit)
+    {
+        return ActualDamage;   // 피해를 입힘
+    }
+    else
+    {
+        return 0.0f;   // 피해를 입히지 못함
+    }
 }
 
 void ADefaultCharBase::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const
@@ -84,7 +91,7 @@ void ADefaultCharBase::TryAttack()
     // Enemy 클래스는 그대로 사용 가능, Player클래스는 부모클래스를 사용하지 않고 재정의합니다. 
     if (bIsAttacking || bIsKnockBack)
     {
-        UE_LOG(LogTemp, Warning, TEXT("C++: Attack Return"));
+        //UE_LOG(LogTemp, Warning, TEXT("C++: Attack Return"));
         return;
     }
 
@@ -94,7 +101,7 @@ void ADefaultCharBase::TryAttack()
 void ADefaultCharBase::Attack_Implementation()
 {   
     // 공격 상태 진입, 기본 구현이라 자식에선 아마 실행 안할듯?
-    UE_LOG(LogTemp, Warning, TEXT("C++: Attack!(DefaultCharBase)"));
+    //UE_LOG(LogTemp, Warning, TEXT("C++: Attack!(DefaultCharBase)"));
 }
 
 void ADefaultCharBase::StartAttackCollision()
@@ -134,7 +141,14 @@ void ADefaultCharBase::OnAttackBoxOverlap(UPrimitiveComponent* OverlappedComp, A
             THitActors.Add(OtherActor);
 
             // 적에게 피해 적용
-            UGameplayStatics::ApplyDamage(OtherActor, DefaultDamage, GetController(), this, UDamageType::StaticClass());
+            float ActualDamage = UGameplayStatics::ApplyDamage(OtherActor, DefaultDamage, GetController(), this, UDamageType::StaticClass());
+
+            if (ActualDamage > 0.0f)
+            {   
+                UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Apply Hit Stop Custom"));
+                // 자신에게 히트스탑 적용
+                ApplyHitStopCustom(0.05f, 0.01f);
+            }
         }
     }
 
@@ -145,10 +159,40 @@ void ADefaultCharBase::SetDefaultDamage(float Amount)
     DefaultDamage = Amount;
 }
 
+void ADefaultCharBase::ApplyHitStopGlobal(float Duration, float Dilation)
+{
+    // 인자로 주어진 시간만큼으로 월드 타임 감속
+    UGameplayStatics::SetGlobalTimeDilation(GetWorld(), Dilation);
+
+    FTimerHandle HitStopTimerHandle;
+
+    GetWorldTimerManager().SetTimer(HitStopTimerHandle, FTimerDelegate::CreateLambda([this]()
+        {
+            // 0.025초 뒤에 다시 원래 속도로 복귀
+            UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.0f);
+
+        }), Duration, false);
+}
+
+void ADefaultCharBase::ApplyHitStopCustom(float Duration, float Dilation)
+{
+    // 인자로 주어진 시간만큼 커스텀 시간 감속
+    this->CustomTimeDilation = Dilation;
+
+    FTimerHandle HitStopTimerHandle;
+
+    GetWorldTimerManager().SetTimer(HitStopTimerHandle, FTimerDelegate::CreateLambda([this]()
+        {
+            // 0.025초 뒤에 다시 원래 속도로 복귀
+            this->CustomTimeDilation = 1.0f;
+
+        }), Duration, false);
+}
+
 bool ADefaultCharBase::GetHit(const FDamageData& DamageData)
 {   
     // 1. 무적상태일때의 판정
-    if (bIsInvincible && !DamageData.bIgnoreInvincible)
+    if (bIsInvincible)
     {   
         UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Is Invincible!"));
 

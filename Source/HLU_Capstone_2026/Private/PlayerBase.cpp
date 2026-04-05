@@ -112,21 +112,6 @@ bool APlayerBase::CanAttackTarget(AActor* Target) const
     return TagInterface->HasMatchingGameplayTag(EnemyTag) || TagInterface->HasMatchingGameplayTag(DestructibleTag);
 }
 
-void APlayerBase::ApplyHitStop(float time, float dilation)
-{   
-    // 인자로 주어진 시간만큼으로 월드 타임 감속
-    UGameplayStatics::SetGlobalTimeDilation(GetWorld(), dilation);
-
-    FTimerHandle HitStopTimerHandle;
-
-    GetWorldTimerManager().SetTimer(HitStopTimerHandle, FTimerDelegate::CreateLambda([this]()
-        {
-            // 0.025초 뒤에 다시 원래 속도로 복귀
-            UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.0f);
-            
-        }), time, false);
-}
-
 void APlayerBase::CheckCombo()
 {   
     // 공격 연계가 가능하도록 전환
@@ -232,8 +217,8 @@ bool APlayerBase::GetHit(const FDamageData& DamageData)
         return false;
     }
     
-    // 0.05초간 히트스탑
-    ApplyHitStop(HitStopTime, HitStopDilation);
+    // 글로벌에 n초간 히트스탑
+    ApplyHitStopGlobal(HitStopTime, HitStopDilation);
 
     // 콤보 관련 타이머 진행상황을 즉시 강제 종료
     GetWorldTimerManager().ClearTimer(ComboTimerHandle);

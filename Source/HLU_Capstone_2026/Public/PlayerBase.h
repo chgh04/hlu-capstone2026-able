@@ -51,10 +51,6 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Combat")
     float HitStopDilation = 0.05f;
 
-    // HitStop(역경직) 및 피격 시 월드 타이머 짧게 중단
-    UFUNCTION(BlueprintCallable, Category = "Combat")
-    void ApplyHitStop(float time, float dilation);
-
     // 공격 시 전진 거리
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
     float AttackStepForce = 500.f;
