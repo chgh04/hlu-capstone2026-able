@@ -23,14 +23,6 @@ APlayerBase::APlayerBase()
 void APlayerBase::BeginPlay()
 {
     Super::BeginPlay();
-
-    MovementComp = GetCharacterMovement();
-    
-    // 기존 바닥 마찰력 저장
-    if (MovementComp)
-    {
-        SavedGroundFriction = MovementComp->GroundFriction;
-    }
 }
 
 void APlayerBase::TryAttack()
@@ -131,10 +123,29 @@ void APlayerBase::ResetCombo()
 
     // UE_LOG(LogTemp, Warning, TEXT("Reset Combo Called!"));
 
+    // 가드 선입력이 있는지 판단, 가드 선입력이 눌려질 시 선입력된 회피/공격은 취소
+    if (bSaveGuard && bCanGuard)
+    {   
+        UE_LOG(LogTemp, Warning, TEXT("Guard Input Buffered Excuted!"));
+        bSaveGuard = false;
+        bSaveAttack = false;
+        bSaveDodge = false;
+
+        // 즉시 공격상태 초기화
+        EndAttackState();
+
+        // 모든 콤보 변수 초기화
+        FullResetCombo();
+
+        // 가드 시작
+        GuardStart();
+        return;
+    }
+
     // 회피 선입력이 있는지 판단, 회피 선입력이 눌려질 시 선입력된 공격은 취소
     if (bSaveDodge && bCanDodge)
     {   
-        //UE_LOG(LogTemp, Warning, TEXT("Dodge Input Bufferd After Attack!"));
+        //UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffered After Attack!"));
         bSaveDodge = false;
         bSaveAttack = false;
 
@@ -216,7 +227,7 @@ bool APlayerBase::GetHit(const FDamageData& DamageData)
 {   
     // 부모 로직 실행, 피격이 유효하지 않았다면 리턴
     if (!Super::GetHit(DamageData))
-    {
+    {   
         return false;
     }
     
@@ -326,13 +337,13 @@ bool APlayerBase::TryDodge(float Time)
     {   
         // 회피 선입력 트리거를 활성화
         bSaveDodge = true;
-        //UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffered"));
+        UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffered"));
 
         // 0.n초 뒤 예약 자동 해제
         FTimerHandle BufferTimer;
         GetWorldTimerManager().SetTimer(BufferTimer, FTimerDelegate::CreateLambda([this]() {
                 bSaveDodge = false;
-                //(LogTemp, Warning, TEXT("Dodge Input Buffer Canceled"));
+                UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffer Canceled"));
             }), 0.3f, false);
 
         // 회피가 실행되지 않았으니 false 리턴
@@ -358,6 +369,9 @@ void APlayerBase::DodgeStart(float Time)
         return;
     }
 
+    // 플레이어의 입력 방향으로 즉시 전환
+    UpdateFacingDirection();
+
     // 회피 중 입력 제한
     bIsMoveLockedWhileDodging = true;
 
@@ -379,12 +393,6 @@ void APlayerBase::DodgeEnd()
 {
     Super::DodgeEnd();
 
-    if (!MovementComp)
-    {
-        return;
-    }
-
-    MovementComp->GroundFriction = SavedGroundFriction;
 }
 
 void APlayerBase::ResetDodgeCooldown()
@@ -414,6 +422,84 @@ void APlayerBase::UpdateFacingDirection()
         FRotator TargetRot = (CurrentRawInputX > 0.f) ? FRotator(0.f, 0.f, 0.f) : FRotator(0.f, 180.f, 0.f);
 
         SetActorRotation(TargetRot);
+    }
+}
+
+void APlayerBase::StopMoveInstantly()
+{   
+    // 이동 즉시 중단
+    if (MovementComp)
+    {
+        MovementComp->Velocity = FVector::ZeroVector;
+    }
+}
+
+bool APlayerBase::TryGuard()
+{   
+    // 부모 함수 미호출
+    //bool bCanGuard = Super::TryGuard();
+
+    // 1. 행동 불가능한 경우 즉시 리턴
+    if (!IsCharacterCanAction())
+    {
+        return false;
+    }
+
+    // 2. 가드 선입력 판정
+    if (bIsAttacking || !bCanGuard)
+    {   
+        bSaveGuard = true;
+
+        FTimerHandle BufferTimer;
+        GetWorldTimerManager().SetTimer(BufferTimer, FTimerDelegate::CreateLambda([this]() {
+            bSaveGuard = false;
+        }), GuardBufferTime, false);
+        
+        UE_LOG(LogTemp, Warning, TEXT("Guard Input Buffered!"));
+
+        // 가드 안됬으니 false 리턴
+        return false;
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("Player Guard Excuted!"));
+    // 문제 없으면 가드 실행 및 true 리턴 
+    GuardStart();
+    return true;
+}
+
+void APlayerBase::GuardStart()
+{   
+    // 부모 로직 먼저 실행
+    Super::GuardStart();
+
+    // 실행시 선입력 예약 해제
+    bSaveGuard = false;
+
+    // 플레이어의 입력 방향으로 즉시 전환
+    UpdateFacingDirection();
+
+    // 가드 도중 마찰력 크게 증가
+    if (MovementComp)
+    {
+        MovementComp->GroundFriction = 10.0f;
+    }
+}
+
+void APlayerBase::EndGuard()
+{
+    Super::EndGuard();
+
+    UE_LOG(LogTemp, Warning, TEXT("C++ PlayerBase: EndGuardCalled!"));
+}
+
+void APlayerBase::ResetGuardCooldown()
+{
+    Super::ResetGuardCooldown();
+
+    if (bSaveGuard && !bIsAttacking && IsCharacterCanAction())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("C++ PlayerBase: Excute Buffered Guard After Guard"));
+        GuardStart();
     }
 }
 

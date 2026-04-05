@@ -43,7 +43,7 @@ public:
 	// 태그 (적, 플레이어) 구분을 위한 인터페이스 함수 오버라이드 
 	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override;
 
-// 컴포넌트 생성 -------------------
+// 컴포넌트 관련 -------------------
 protected:
 	// 체력 관리 컴포넌트 - VisibleAnywhere로 디테일 패널에서 확인 가능
 	UPROPERTY(VisibleAnywhere, Category = "Components")
@@ -52,6 +52,9 @@ protected:
 	// 공격 판정 범위 - 박스 형태의 트리거
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UBoxComponent* AttackBox;
+
+	// 캐릭터 MovementComponent
+	class UCharacterMovementComponent* MovementComp = nullptr;
 
 // 공격 기능 함수/변수 -------------------
 protected:
@@ -156,12 +159,14 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Status")
 	void PlayDeathAnimation();
 
-// 이동/회피/무적 관련 함수/변수
+// 무적 관련 함수/변수
 protected:
 	// 캐릭터가 무적상태인지(피격 후 혹은 특정 패턴) 판단
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Status")
 	bool bIsInvincible = false;
 
+// 이동/회피 관련 함수/변수
+protected:
 	// 캐릭터가 회피상태인지 판단
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
 	bool bIsDodging = false;
@@ -197,23 +202,82 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Combat")
 	void PlayDodgeAnimation();
 
+	// 회피 플래그 반환
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Combat")
+	bool GetIsDodging() { return bIsDodging; }
+
+	// 캐릭터의 지면마찰력 저장 변수
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	float SavedGroundFriction;
+
 // 가드 관련 함수/변수
 protected:
 	// 가드 플래그
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	bool bIsGuarding = false;
 	
-	// 캐릭터 가드 애니메이션 재생
+	// 캐릭터 가드 애니메이션 재생, !!반드시 부모 BP가 아닌 가장 자식인 BP에서 구현해야 합니다!!
 	UFUNCTION(BlueprintImplementableEvent, Category = "Combat")
 	void PlayGuardAnimation();
+
+	// 가드 시도 시, 가드 가능 여부 판단, 가능하면 가드 호출
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	virtual bool TryGuard();
+	
+	// 실제 가드 로직 실행 함수
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	virtual void GuardStart();
+
+	// 가드 종료 함수
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	virtual void EndGuard();
+
+	// 가드 상태 지속 시간
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	float GuardDuration = 0.35f;
+
+	// 가드 성공 여부, 추후 확장 가능한 옵션에 대해 사용 가능
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	bool bIsGuardSuccess = false;
+
+	// 가드 성공시 넉백 강도
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	float GuardKnockbackStrength = 0.0f;
+
+	// 가드 쿨타임
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat")
+	float GuardCoolDown = 1.3f;
+
+	// 가드 쿨타임 플래그
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	bool bCanGuard = true;
+
+	// 가드 쿨타임 초기화 함수 
+	virtual void ResetGuardCooldown();
+
+	// 가드가 단 한번의 공격만을 막을지에 대한 플래그
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	bool bIsGuardBlockOnlyOneHit = false;
+
+	// 가드 후 마찰력을 원래대로 돌려두는 전용 함수 
+	void RestoreGuardPhysics();
 
 // 기타 추가 기능
 protected:
 	// 회피무적 타이머 관리자
 	FTimerHandle DodgeTimerHandle;
 
-	// 회피 쿨타임 관리를 위한 타이머 핸들
+	// 회피 쿨타임 관리를 위한 타이머 관리자
 	FTimerHandle DodgeCooldownTimerHandle;
+
+	// 가드 판정 타이머 관리자
+	FTimerHandle GuardTimerHandle;
+
+	// 가드 쿨타임 관리자
+	FTimerHandle GuardCooldownTimerHandle;
+
+	// 가드 반동(넉백) 물리 복구 타이머 관리자
+	FTimerHandle GuardRecoilTimerHandle;
 
 	// 해당 캐릭터가 움직일 수 있는지 확인하는 함수, 자식에서 재정의하여 사용 가능
 	// 캐릭터가 행동 가능한 상태라면 true, 아니라면 false 반환합니다. 

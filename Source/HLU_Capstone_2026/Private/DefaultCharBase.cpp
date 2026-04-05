@@ -4,6 +4,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Engine/DamageEvents.h"
 #include "CustomDamageType.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 ADefaultCharBase::ADefaultCharBase()
 {
@@ -32,6 +33,15 @@ void ADefaultCharBase::BeginPlay()
 
     // 공격 박스 비활성화
     AttackBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    // MovementComponent 할당
+    MovementComp = GetCharacterMovement();
+
+    // 기존 바닥 마찰력 저장
+    if (MovementComp)
+    {
+        SavedGroundFriction = MovementComp->GroundFriction;
+    }
 }
 
 void ADefaultCharBase::ReceiveDamage_Implementation(const float DamageAmount)
@@ -273,28 +283,61 @@ bool ADefaultCharBase::GetHit(const FDamageData& DamageData)
     }
 
     // 3. 가드 판정
-    if (bIsGuarding && DamageData.DamageCauser)
+    if (bIsGuarding)
     {   
-        // 캐릭터가 바라보는 전방 벡터
-        FVector Forward = GetActorForwardVector();
-
-        // 캐릭터부터 공격자를 향하는 방향벡터, 높이차이는 무시
-        FVector DirToAttacker = (DamageData.DamageCauser->GetActorLocation() - GetActorLocation());
-        DirToAttacker.Z = 0.0f;
-        DirToAttacker = DirToAttacker.GetSafeNormal();
-        
-        // 두 벡터의 내적 계산, 두 벡터의 내적이 0보다 크면 전방에 공격자가 있다는 의미
-        float DotResult = FVector::DotProduct(Forward, DirToAttacker);
-
-        // 가드 판정 성공
-        if (DotResult > 0.0f)
+        if (DamageData.bIgnoreGuard)
         {
-            UE_LOG(LogTemp, Warning, TEXT("C++: Guard Success!"));
+            UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Guard ignored!"));
+        }
+        else
+        {
+            // 캐릭터가 바라보는 전방 벡터
+            FVector Forward = GetActorForwardVector();
 
+            // 캐릭터부터 공격자를 향하는 방향벡터, 높이차이는 무시
+            FVector DirToAttacker = (DamageData.DamageCauser->GetActorLocation() - GetActorLocation());
+            DirToAttacker.Z = 0.0f;
+            DirToAttacker = DirToAttacker.GetSafeNormal();
 
+            // 두 벡터의 내적 계산, 두 벡터의 내적이 0보다 크면 전방에 공격자가 있다는 의미
+            float DotResult = FVector::DotProduct(Forward, DirToAttacker);
 
-            return false;
-        }  
+            // 가드 판정 성공
+            if (DotResult > 0.0f)
+            {
+                UE_LOG(LogTemp, Warning, TEXT("C++: Guard Success!"));
+
+                // 가드 성공 신호
+                bIsGuardSuccess = true;
+
+                // 가드넉백만큼의 넉백 적용
+                if (MovementComp)
+                {
+                    // 지면마찰력을 0으로 변경
+                    MovementComp->GroundFriction = 0.0f;
+                    FVector DashVelocity = Forward * GuardKnockbackStrength * -1;
+                    DashVelocity.Z = MovementComp->Velocity.Z;
+                    MovementComp->Velocity = DashVelocity;
+                }
+
+                // 가드가 만약 한번만의 공격을 막는다면
+                if (bIsGuardBlockOnlyOneHit)
+                {
+                    UE_LOG(LogTemp, Warning, TEXT("C++: Guard Apply One Time!"));
+
+                    // 가드 타이머 해제
+                    GetWorldTimerManager().ClearTimer(GuardTimerHandle);
+
+                    // 가드상태 즉시해제
+                    EndGuard();
+                }
+
+                // 0.2초 이후에 지면 마찰력 원래상태로 초기화
+                GetWorldTimerManager().SetTimer(GuardRecoilTimerHandle, this, &ADefaultCharBase::RestoreGuardPhysics, 0.2f, false);
+
+                return false;
+            }
+        }
     }
 
     // 피격 상태 진입
@@ -374,6 +417,9 @@ void ADefaultCharBase::DodgeEnd()
     // 회피상태 종료
     bIsDodging = false;
 
+    // 지면마찰력 원상복구
+    MovementComp->GroundFriction = SavedGroundFriction;
+
     UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Now Dodge End!"));
 }
 
@@ -383,9 +429,82 @@ void ADefaultCharBase::ResetDodgeCooldown()
     UE_LOG(LogTemp, Warning, TEXT("Dodge is Ready again!"));
 }
 
+bool ADefaultCharBase::TryGuard()
+{   
+    // 행동 불가 상태에선 가드 불가능
+    if (!IsCharacterCanAction())
+    {
+        return false;
+    }
+
+    if (bIsAttacking)
+    {
+        // TODO: 공격 도중 가드 허용 여부 및 로직 구현
+        return false;
+    }
+
+    GuardStart();
+    return true;
+}
+
+void ADefaultCharBase::GuardStart()
+{   
+    // 가드 플래그 설정
+    bCanGuard = false;
+    bIsGuarding = true;
+
+    // 자식 PlayerBase - 방향키 방향으로 전환 및 이동 즉시 중단
+    // 자식 EnemyBase - 딱히 없음, BP에서 별도 구현
+
+    // 가드 애니메이션 재생
+    PlayGuardAnimation();
+
+    // 가드 타이머 초기화
+    GetWorldTimerManager().ClearTimer(GuardTimerHandle);
+    
+    // GuardDuration동안 가드 타이머 가동
+    GetWorldTimerManager().SetTimer(GuardTimerHandle, this, &ADefaultCharBase::EndGuard, GuardDuration, false);
+
+    // 가드 쿨타임 타이머 가동
+    GetWorldTimerManager().SetTimer(GuardCooldownTimerHandle, this, &ADefaultCharBase::ResetGuardCooldown, GuardCoolDown, false);
+
+    UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Guard Started!"));
+}
+
+void ADefaultCharBase::EndGuard()
+{   
+    // 자식 BP에서 구체화 필요
+    if (!bIsGuarding)
+    {
+        return;
+    }
+
+    bIsGuarding = false;
+
+    if (bIsGuardSuccess)
+    {
+        bIsGuardSuccess = false;
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Guard Ended!"));
+}
+
+void ADefaultCharBase::ResetGuardCooldown()
+{
+    bCanGuard = true;
+}
+
+void ADefaultCharBase::RestoreGuardPhysics()
+{
+    if (MovementComp)
+    {
+        MovementComp->GroundFriction = SavedGroundFriction;
+    }
+}
+
 bool ADefaultCharBase::IsCharacterCanAction()
 {
-    bool bIsCanAct = !(bIsKnockBack || bIsDead || bIsDodging);
+    bool bIsCanAct = !(bIsKnockBack || bIsDead || bIsDodging || bIsGuarding);
 
     return bIsCanAct;
 }

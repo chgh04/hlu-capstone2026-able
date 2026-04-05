@@ -114,11 +114,7 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Combat")
     float HitInvincibleTime = 1.0f;
 
-// 플레이어 이동/회피/무적 관련 함수/변수
-private:
-    // 플레이어 MovementComponent
-    class UCharacterMovementComponent* MovementComp = nullptr;
-
+// 플레이어 이동/회피 관련 함수/변수
 protected:
     // 점프 시도
     UFUNCTION(BlueprintCallable, Category = "Player_Movement")
@@ -132,17 +128,15 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Player_Movement")
     int32 MaxJumpCount = 1;
 
+public:
     // 애니메이션 이벤트에서 호출할 전진 스텝 함수 
     UFUNCTION(BlueprintCallable, Category = "Combat")
     void StepForward(float StepForce = 200.0f);
 
+protected:
     // 플레이어 회피 시 전진성
     UPROPERTY(EditDefaultsOnly, Category = "Combat")
     float DodgeVelocity = 500.0f;
-
-    // 캐릭터의 지면마찰력 저장 변수
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
-    float SavedGroundFriction;
 
     virtual bool TryDodge(float Time) override;
 
@@ -174,6 +168,30 @@ protected:
     // 플레이어의 방향을 즉시 전환하는 전용 함수
     void UpdateFacingDirection();
 
+    // 플레이어 이동 즉시 중단
+    UFUNCTION(BlueprintCallable, Category = "Player_Movement")
+    void StopMoveInstantly();
+
+// 플레이어 가드 관련 함수/변수
+protected:
+    // 부모 TryGuard 재정의
+    virtual bool TryGuard() override;
+
+    // 부모 GuardStart 재정의
+    virtual void GuardStart() override;
+
+    // 부모 EndGuard 재정의
+    virtual void EndGuard() override;
+
+    // 가드 선입력 유효 시간 (회피 0.2s보다 짧은 0.1s 추천)
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat")
+    float GuardBufferTime = 0.1f;
+
+    // 가드 선입력 플래그
+    bool bSaveGuard = false;
+
+    // 부모 ResetGuardCooldown 재정의
+    virtual void ResetGuardCooldown() override;
 
 // 기타 추가 기능
 protected:
@@ -186,5 +204,5 @@ protected:
 
     // 플레이어 피격 관련 타이머 관리자
     FTimerHandle HitInvincibleTimerHandle;
-    
+
 };
