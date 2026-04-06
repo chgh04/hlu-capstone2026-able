@@ -365,7 +365,7 @@ bool ADefaultCharBase::GetHit(const FDamageData& DamageData)
 void ADefaultCharBase::PlayKnockBack(const FDamageData& DamageData)
 {
     FVector LaunchVelocity = DamageData.HitDirection * KnockbackStrength; // 넉백 강도
-    LaunchVelocity.Z = 200.f; // 살짝 위로 뜨게 만듦
+    LaunchVelocity.Z = KnockbackZStregth; // 살짝 위로 뜨게 만듦
 
     LaunchCharacter(LaunchVelocity, true, true); // 넉백 적용
 }
@@ -417,8 +417,10 @@ void ADefaultCharBase::DodgeEnd()
     // 회피상태 종료
     bIsDodging = false;
 
-    // 지면마찰력 원상복구
-    MovementComp->GroundFriction = SavedGroundFriction;
+    if (MovementComp)
+    {
+        MovementComp->GroundFriction = SavedGroundFriction;
+    }
 
     UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Now Dodge End!"));
 }
@@ -479,13 +481,17 @@ void ADefaultCharBase::EndGuard()
         return;
     }
 
+    // 지면마찰력 복구는 안하나요? GetHit 함수에서 지면마찰력 복구 함수가 있습니다. 가드시 뒤로 밀려나는 효과를 위해 타이머로 조작합니다. 
+
+    // 가드상태 해제 
     bIsGuarding = false;
 
+    // 가드 성공 플래그 초기화
     if (bIsGuardSuccess)
     {
         bIsGuardSuccess = false;
     }
-
+    
     UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Guard Ended!"));
 }
 

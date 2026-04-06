@@ -128,6 +128,9 @@ protected:
 
 // 플레이어 이동/회피 관련 함수/변수
 protected:
+    // 캐릭터의 이동모드(걷기, 낙하등)가 변경될 때 호출되는 함수 
+    virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
+
     // 점프 시도
     UFUNCTION(BlueprintCallable, Category = "Player_Movement")
     virtual void TryJump();
@@ -166,6 +169,10 @@ protected:
     // 회피 쿨타임 초기화 함수 재정의
     virtual void ResetDodgeCooldown() override;
 
+    // 플레이어 회피 추진력 전달 함수 
+    UFUNCTION(BlueprintCallable, Category = "Combat")
+    void AddVelocityWhileDodging();
+
     // 회피 애니메이션 중 입력 제한 플래그
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
     bool bIsMoveLockedWhileDodging = false;
@@ -188,6 +195,29 @@ protected:
     // 플레이어 이동 즉시 중단
     UFUNCTION(BlueprintCallable, Category = "Player_Movement")
     void StopMoveInstantly();
+
+    // 언리얼의 앉기 기능 실행 
+    UFUNCTION(BlueprintCallable, Category = "Player_Movement")
+    void StartSlideCapsule();
+
+    // 앉기에서 다시 선 상태로 복구
+    UFUNCTION(BlueprintCallable, Category = "Player_Movement")
+    void EndSlideCapsule();
+
+    // 앉기(슬라이딩) 시작 시 호출되는 엔진 내장 함수
+    virtual void OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
+
+    // 앉기(슬라이딩) 종료 시 호출되는 엔진 내장 함수
+    virtual void OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
+
+public:
+    // bIsJump값 리턴
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Player_Movement")
+    bool GetIsJumping() { return bIsJumping; }
+
+    // CurrentRawInputX 값 리턴
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Player_Movement")
+    float GetCurrentRawInputX() { return CurrentRawInputX; }
 
 // 플레이어 가드 관련 함수/변수
 protected:

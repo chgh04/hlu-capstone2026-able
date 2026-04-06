@@ -151,6 +151,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	float KnockbackStrength = 500.f;
 
+	// 캐릭터가 넉백 시 z축 넉백 강도
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float KnockbackZStregth = 200.f;
+
 	// 캐릭터 사망상태 플래그
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Status")
 	bool bIsDead = false;

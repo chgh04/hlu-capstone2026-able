@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "PaperFlipbookComponent.h"
 
 APlayerBase::APlayerBase()
 {
@@ -18,6 +19,12 @@ APlayerBase::APlayerBase()
     MainCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
     MainCamera->SetupAttachment(CameraString, USpringArmComponent::SocketName);
     MainCamera->bUsePawnControlRotation = false;
+
+    // 캐릭터 컴포넌트에서 앉기 기능 활성화
+    GetCharacterMovement()->GetNavAgentPropertiesRef().bCanCrouch = true;
+
+    // 캐릭터가 않은 상태에서도 절벽 아래로 떨어질 수 있도록 조정(슬라이딩 시 떨어짐 허용)
+    GetCharacterMovement()->bCanWalkOffLedgesWhenCrouching = true;
 }
 
 void APlayerBase::BeginPlay()
@@ -277,6 +284,32 @@ bool APlayerBase::GetHit(const FDamageData& DamageData)
     return true;
 }
 
+void APlayerBase::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
+{
+    // 1. 부모 클래스의 기본 로직 실행
+    Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
+
+    // 걷다가 허공으로 떨어지기 시작했을 경우 실행
+    if (PrevMovementMode == MOVE_Walking && GetCharacterMovement()->MovementMode == MOVE_Falling)
+    {
+        if (bIsCrouched)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Slid off a ledge! Enforcing safety logic."));
+
+            // 캡슐, 스프라이트, 카메라 암 복구
+            //UnCrouch();
+
+            // 튕겨나가는 속도 절반으로 깍기
+            FVector CurrentVelocity = MovementComp->Velocity;
+            CurrentVelocity.X *= 0.5f;
+
+            MovementComp->Velocity = CurrentVelocity;
+
+            StopAnimationOverride();
+        }
+    }
+}
+
 void APlayerBase::TryJump()
 {   
     // 점프가 불가능한 상황에서는 점프 불가
@@ -415,25 +448,11 @@ void APlayerBase::DodgeStart(float Time)
 
     // 회피 중 입력 제한
     bIsMoveLockedWhileDodging = true;
-
-    // 지면마찰력을 0으로 변경
-    MovementComp->GroundFriction = 0.0f;
-
-    // 캐릭터 전방 벡터 구하기
-    FVector ForwardDir = GetActorForwardVector();   
-
-    // 전진하는 힘과 방향 계산
-    FVector DashVelocity = ForwardDir * DodgeVelocity;
-
-    // Z값을 현재 플레이어의 Z값으로 바꾸고 적용
-    DashVelocity.Z = MovementComp->Velocity.Z;
-    MovementComp->Velocity = DashVelocity;
 }
 
 void APlayerBase::DodgeEnd()
 {
     Super::DodgeEnd();
-
 }
 
 void APlayerBase::ResetDodgeCooldown()
@@ -447,6 +466,22 @@ void APlayerBase::ResetDodgeCooldown()
         bSaveDodge = false;
         DodgeStart(DodgeDuration);
     }
+}
+
+void APlayerBase::AddVelocityWhileDodging()
+{
+    // 지면마찰력을 0으로 변경
+    MovementComp->GroundFriction = 0.0f;
+
+    // 캐릭터 전방 벡터 구하기
+    FVector ForwardDir = GetActorForwardVector();
+
+    // 전진하는 힘과 방향 계산
+    FVector DashVelocity = ForwardDir * DodgeVelocity;
+
+    // Z값을 현재 플레이어의 Z값으로 바꾸고 적용
+    DashVelocity.Z = MovementComp->Velocity.Z;
+    MovementComp->Velocity = DashVelocity;
 }
 
 void APlayerBase::UnlockMoveInputAfterDodge()
@@ -473,6 +508,64 @@ void APlayerBase::StopMoveInstantly()
     {
         MovementComp->Velocity = FVector::ZeroVector;
     }
+}
+
+void APlayerBase::StartSlideCapsule()
+{
+    Crouch();
+    UE_LOG(LogTemp, Warning, TEXT("Slide Capsule Reduced!"));
+}
+
+void APlayerBase::EndSlideCapsule()
+{   
+    // 놀랍게도 천장에 막혀있으면 엔진이 기다렸다 알아서 일어나게 해줌
+    UnCrouch();
+    UE_LOG(LogTemp, Warning, TEXT("Slide Capsule Restored!"));
+}
+
+void APlayerBase::OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+{
+    // 부모 클래스의 기본 로직 실행
+    Super::OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+
+    // 카메라 및 스프라이트 위치보정값
+    float FixHeightAdjust = HalfHeightAdjust * 0.95;
+
+    // 캐릭터 스프라이트 위치 보정
+    if (UPaperFlipbookComponent* VisualComp = GetSprite())
+    {
+        VisualComp->AddLocalOffset(FVector(0.0f, 0.0f, FixHeightAdjust));
+    }
+
+    // 스프링 암 보정
+    if (USpringArmComponent* SpringArm = FindComponentByClass<USpringArmComponent>())
+    {
+        SpringArm->AddLocalOffset(FVector(0.0f, 0.0f, FixHeightAdjust));
+    }
+
+    // 로그로 높이가 얼마나 보정되었는지 확인
+    UE_LOG(LogTemp, Warning, TEXT("Crouch Started: Mesh moved UP by %f"), FixHeightAdjust);
+}
+
+void APlayerBase::OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+{
+    // 부모 클래스 로직 실행
+    Super::OnEndCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+
+    // 카메라 및 스프라이트 위치보정값
+    float FixHeightAdjust = HalfHeightAdjust * 0.95 * -1;
+
+    if (UPaperFlipbookComponent* VisualComp = GetSprite())
+    {
+        VisualComp->AddLocalOffset(FVector(0.0f, 0.0f, FixHeightAdjust));
+    }
+
+    if (USpringArmComponent* SpringArm = FindComponentByClass<USpringArmComponent>())
+    {
+        SpringArm->AddLocalOffset(FVector(0.0f, 0.0f, FixHeightAdjust));
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("Crouch Ended: Mesh moved DOWN by %f"), FixHeightAdjust);
 }
 
 bool APlayerBase::TryGuard()
