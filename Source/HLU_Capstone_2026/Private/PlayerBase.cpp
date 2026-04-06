@@ -107,6 +107,21 @@ bool APlayerBase::CanAttackTarget(AActor* Target) const
     return TagInterface->HasMatchingGameplayTag(EnemyTag) || TagInterface->HasMatchingGameplayTag(DestructibleTag);
 }
 
+void APlayerBase::AirAttack()
+{   
+    UE_LOG(LogTemp, Warning, TEXT("Air Attack Called"));
+
+    // 공중 공격 시 약간의 공중 체공 기능
+    /*FVector CurrentVelocity = MovementComp->Velocity;
+    CurrentVelocity.Z = 0.0f;
+    MovementComp->Velocity = CurrentVelocity;*/
+
+    // 공중 하단공격 애니메이션 재생 
+    PlayDownwardAirAttackAnimation();
+
+    UE_LOG(LogTemp, Warning, TEXT("Air Attack Executed! Suspension applied."));
+}
+
 void APlayerBase::CheckCombo()
 {   
     // 공격 연계가 가능하도록 전환
@@ -270,13 +285,39 @@ void APlayerBase::TryJump()
         return;
     }
 
+    // 점프 플래그 활성화
+    bIsJumping = true;
+
     Jump();
 }
+
 
 void APlayerBase::TryStopJumping()
 {   
     // 점프 중단, 추후 별도 로직 추가 가능
     StopJumping();
+}
+
+void APlayerBase::Landed(const FHitResult& Hit)
+{
+    Super::Landed(Hit);
+
+    // 공중 공격 도중 착지하였을 경우
+    if (bIsAttacking)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Air Attack Canceled by Landing!"));
+
+        EndAttackState();
+
+        FullResetCombo();
+
+        StopAnimationOverride();
+    }
+
+    // 점프 플래그 비활성화
+    bIsJumping = false;
+
+    // TODO: 이펙트, 사운드, 하드랜딩 분기
 }
 
 void APlayerBase::StepForward(float StepForce)

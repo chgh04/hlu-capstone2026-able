@@ -63,6 +63,18 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
     float SavedAttackSpeed;
 
+    UFUNCTION(BlueprintCallable, Category = "Combat")
+    // 공중공격 수행 함수
+    void AirAttack();
+
+    // 플레이어의 공중공격 애니메이션 재생 함수
+    UFUNCTION(BlueprintImplementableEvent, Category = "Combat")
+    void PlayDownwardAirAttackAnimation();
+
+    // 플레이어의 애니메이션 강제종료 함수
+    UFUNCTION(BlueprintImplementableEvent, Category = "Combat")
+    void StopAnimationOverride();
+
 // 플레이어 콤보 공격 관련 -------------------
 protected:
     // 플레이어 콤보 연계가 가능하도록 전환 (ABP의 노티파이에서 호출함)
@@ -124,16 +136,21 @@ protected:
     UFUNCTION(BlueprintCallable, Category = "Player_Movement")
     virtual void TryStopJumping();
 
+    // 캐릭터가 땅에 닿는 순간 엔진이 자동 호출
+    virtual void Landed(const FHitResult& Hit) override;
+
     // 플레이어 최대 점프 가능 횟수, 근데 이거 어차피 CharacterMovement 클래스에 있는 변수라 안쓸 수 있음
     UPROPERTY(EditDefaultsOnly, Category = "Player_Movement")
     int32 MaxJumpCount = 1;
 
-public:
     // 애니메이션 이벤트에서 호출할 전진 스텝 함수 
     UFUNCTION(BlueprintCallable, Category = "Combat")
     void StepForward(float StepForce = 200.0f);
 
-protected:
+    // 플레이어가 점프를 눌렀는지에 대한 플래그
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_Movement")
+    bool bIsJumping = false;
+
     // 플레이어 회피 시 전진성
     UPROPERTY(EditDefaultsOnly, Category = "Combat")
     float DodgeVelocity = 500.0f;
