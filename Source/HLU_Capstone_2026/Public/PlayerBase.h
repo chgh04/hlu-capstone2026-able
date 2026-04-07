@@ -22,6 +22,8 @@ public:
 protected:
     virtual void BeginPlay() override;
 
+    virtual void Tick(float DeltaTime) override;
+
 // 컴포넌트 생성 -------------------
 protected:
     // 카메라 암
@@ -209,6 +211,9 @@ protected:
 
     // 앉기(슬라이딩) 종료 시 호출되는 엔진 내장 함수
     virtual void OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
+
+    // 도약 및 낙하시 중력 계수 동적 변경 함수
+    void ChangeGravity();
 
 public:
     // bIsJump값 리턴

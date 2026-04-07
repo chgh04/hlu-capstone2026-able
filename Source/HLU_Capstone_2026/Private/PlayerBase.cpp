@@ -32,6 +32,16 @@ void APlayerBase::BeginPlay()
     Super::BeginPlay();
 }
 
+void APlayerBase::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+
+    if (MovementComp)
+    {
+        ChangeGravity();
+    }
+}
+
 void APlayerBase::TryAttack()
 {   
     // 부모클래스 TryAttack을 실행하지 않고 완전히 재정의
@@ -566,6 +576,29 @@ void APlayerBase::OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdju
     }
 
     UE_LOG(LogTemp, Warning, TEXT("Crouch Ended: Mesh moved DOWN by %f"), FixHeightAdjust);
+}
+
+void APlayerBase::ChangeGravity()
+{
+    // 공중에 떠있는 경우에만 해당 함수 로직 실행
+    if (MovementComp->IsFalling())
+    {   
+        // z속도가 0보다 작다 = 점프에서 최대높이에 도달하고 낙하 시작
+        if (MovementComp->Velocity.Z < 0.0f)
+        {   
+            // 낙하중일때 2배 강하게 끌어당김
+            MovementComp->GravityScale = 2.0f;
+        }
+        else
+        {   
+            // 상승중일땐 기본 1 유지
+            MovementComp->GravityScale = 1.0f;
+        }
+    }
+    else
+    {
+        MovementComp->GravityScale = 1.0f;
+    }
 }
 
 bool APlayerBase::TryGuard()
