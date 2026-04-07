@@ -352,7 +352,7 @@ void APlayerBase::TryJump()
             GetWorldTimerManager().SetTimer(BufferTimer, FTimerDelegate::CreateLambda([this]() {
                 bSaveDodge = false;
                 UE_LOG(LogTemp, Warning, TEXT("Jump Buffered Cancelled"));
-                }), 0.25f, false);
+                }), 0.2f, false);
         }
 
         return;
