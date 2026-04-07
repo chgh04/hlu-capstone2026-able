@@ -66,10 +66,18 @@ protected:
     float SavedAttackSpeed;
 
     UFUNCTION(BlueprintCallable, Category = "Combat")
-    // 공중공격 수행 함수
-    void AirAttack();
+    // 공중일반공격 수행 함수
+    void AirDefaultAttack();
 
-    // 플레이어의 공중공격 애니메이션 재생 함수
+    UFUNCTION(BlueprintCallable, Category = "Combat")
+    // 공중아래공격 수행 함수
+    void AirDownwardAttack();
+
+    // 플레이어의 공중일반공격 애니메이션 재생 함수
+    UFUNCTION(BlueprintImplementableEvent, Category = "Combat")
+    void PlayDefaultAirAttackAnimation();
+
+    // 플레이어의 공중하단공격 애니메이션 재생 함수
     UFUNCTION(BlueprintImplementableEvent, Category = "Combat")
     void PlayDownwardAirAttackAnimation();
 
@@ -129,6 +137,9 @@ protected:
     float HitInvincibleTime = 1.0f;
 
 // 플레이어 이동/회피 관련 함수/변수
+private:
+    float SavedPlayerMaxWalkSpeed;
+
 protected:
     // 캐릭터의 이동모드(걷기, 낙하등)가 변경될 때 호출되는 함수 
     virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
@@ -156,6 +167,10 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_Movement")
     bool bIsJumping = false;
 
+    // 플레이어의 점프 선입력 플래그
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_Movement")
+    bool bSaveJump = false;
+
     // 플레이어 회피 시 전진성
     UPROPERTY(EditDefaultsOnly, Category = "Combat")
     float DodgeVelocity = 500.0f;
@@ -182,6 +197,9 @@ protected:
     // 회피 선입력 예약 플래그
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
     bool bSaveDodge = false;
+
+    // 플레이어 회피 이후 속력 유지 및 감속 타이머, 대시 이후 플레이어의 속도를 잠시 증가시키고 천천히 감속시키는 타이머에 사용됨
+    void DecelerateMomentum();
 
     // 회피 이후 재입력 허용 플래그 전환 함수
     UFUNCTION(BlueprintCallable, Category = "Combat")
@@ -256,5 +274,8 @@ protected:
 
     // 플레이어 피격 관련 타이머 관리자
     FTimerHandle HitInvincibleTimerHandle;
+
+    // 플레이어 회피 이후 관성 감속 타이머 관리자
+    FTimerHandle MomentumTimerHandle;
 
 };

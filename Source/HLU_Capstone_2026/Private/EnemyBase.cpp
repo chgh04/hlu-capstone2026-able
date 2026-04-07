@@ -30,6 +30,7 @@ void AEnemyBase::BeginPlay()
         DetectionRange->OnComponentBeginOverlap.AddDynamic(this, &AEnemyBase::OnDetectionBeginOverlap);
         DetectionRange->OnComponentEndOverlap.AddDynamic(this, &AEnemyBase::OnDetectionEndOverlap);
         //UE_LOG(LogTemp, Warning, TEXT("AI: AddDynamic Added"));
+        DetectionRange->SetSphereRadius(DetectionRadius);
     }
 
     // 상태 지정

@@ -30,6 +30,9 @@ APlayerBase::APlayerBase()
 void APlayerBase::BeginPlay()
 {
     Super::BeginPlay();
+
+    // 플레이어 최대 이동속도 저장
+    SavedPlayerMaxWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
 }
 
 void APlayerBase::Tick(float DeltaTime)
@@ -124,9 +127,17 @@ bool APlayerBase::CanAttackTarget(AActor* Target) const
     return TagInterface->HasMatchingGameplayTag(EnemyTag) || TagInterface->HasMatchingGameplayTag(DestructibleTag);
 }
 
-void APlayerBase::AirAttack()
+void APlayerBase::AirDefaultAttack()
+{
+    UE_LOG(LogTemp, Warning, TEXT("Air Default Attack Called"));
+
+    // 공중 일반공격 애니메이션 재생
+    PlayDefaultAirAttackAnimation();
+}
+
+void APlayerBase::AirDownwardAttack()
 {   
-    UE_LOG(LogTemp, Warning, TEXT("Air Attack Called"));
+    UE_LOG(LogTemp, Warning, TEXT("Air Downward Attack Called"));
 
     // 공중 공격 시 약간의 공중 체공 기능
     /*FVector CurrentVelocity = MovementComp->Velocity;
@@ -304,7 +315,7 @@ void APlayerBase::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 Pr
     {
         if (bIsCrouched)
         {
-            UE_LOG(LogTemp, Warning, TEXT("Slid off a ledge! Enforcing safety logic."));
+            //UE_LOG(LogTemp, Warning, TEXT("Slid off a ledge! Enforcing safety logic."));
 
             // 캡슐, 스프라이트, 카메라 암 복구
             //UnCrouch();
@@ -322,16 +333,70 @@ void APlayerBase::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 Pr
 
 void APlayerBase::TryJump()
 {   
-    // 점프가 불가능한 상황에서는 점프 불가
-    if (!IsCharacterCanAction() || bIsAttacking)
+    // 1. 컴포넌트 유효성 검사
+    if (!MovementComp)
     {
         return;
     }
 
+    // 2. 점프가 불가능한 상황에서는 점프 불가
+    if (!IsCharacterCanAction() || bIsAttacking)
+    {   
+        // 회피 도중 호출될 시 선입력 저장 
+        if (bIsDodging)
+        {
+            bSaveJump = true;
+            UE_LOG(LogTemp, Warning, TEXT("Jump Buffered during Dash!"));
+
+            FTimerHandle BufferTimer;
+            GetWorldTimerManager().SetTimer(BufferTimer, FTimerDelegate::CreateLambda([this]() {
+                bSaveDodge = false;
+                UE_LOG(LogTemp, Warning, TEXT("Jump Buffered Cancelled"));
+                }), 0.25f, false);
+        }
+
+        return;
+    }
+
+    // 3. 함수 호출 당시의 수직 제외 수평 속도만 추출 및 최대 허용 속도 지정
+    FVector HorizontalVelocity = FVector(MovementComp->Velocity.X, MovementComp->Velocity.Y, 0.0f);
+
+    // 허용할 점프 최대 속도
+    float MaxAllowedJumpSpeed = SavedPlayerMaxWalkSpeed * 1.2f;
+
+    UE_LOG(LogTemp, Warning, TEXT("Jump Tried!"));
+
+    // 4. 플레이어 적용 속도 계산
+    if (HorizontalVelocity.Size() > MaxAllowedJumpSpeed)
+    {   
+        // 속도와 방향을 유지한 채, 크기만 최대 허용치로 줄이기
+        HorizontalVelocity = HorizontalVelocity.GetSafeNormal() * MaxAllowedJumpSpeed;
+
+        // 조절된 수평 속도에 기존 Z축 속도를 합쳐서 덮어씌우기
+        MovementComp->Velocity = FVector(HorizontalVelocity.X, HorizontalVelocity.Y, MovementComp->Velocity.Z);
+
+        UE_LOG(LogTemp, Warning, TEXT("Dash-Jump Speed Clamped to %f!"), MaxAllowedJumpSpeed);
+    }
+
+
+    // 점프가 가능할 경우
+
     // 점프 플래그 활성화
     bIsJumping = true;
 
+    // 만약 Crouched때문에 엔진 내부에서 점프가 안될 경우, Lauch로 캐릭터 강제 점프
+    if (bIsCrouched)
+    {
+        UnCrouch();
+
+        FVector JumpForce = FVector(0.f, 0.f, MovementComp->JumpZVelocity);
+        LaunchCharacter(JumpForce, false, true);
+
+        return;
+    }
+    
     Jump();
+
 }
 
 
@@ -348,7 +413,7 @@ void APlayerBase::Landed(const FHitResult& Hit)
     // 공중 공격 도중 착지하였을 경우
     if (bIsAttacking)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Air Attack Canceled by Landing!"));
+        //UE_LOG(LogTemp, Warning, TEXT("Air Attack Canceled by Landing!"));
 
         EndAttackState();
 
@@ -421,20 +486,20 @@ bool APlayerBase::TryDodge(float Time)
     {   
         // 회피 선입력 트리거를 활성화
         bSaveDodge = true;
-        UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffered"));
+        //UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffered"));
 
         // 0.n초 뒤 예약 자동 해제
         FTimerHandle BufferTimer;
         GetWorldTimerManager().SetTimer(BufferTimer, FTimerDelegate::CreateLambda([this]() {
                 bSaveDodge = false;
-                UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffer Canceled"));
+                //UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffer Canceled"));
             }), 0.3f, false);
 
         // 회피가 실행되지 않았으니 false 리턴
         return false;
     }
 
-    UE_LOG(LogTemp, Warning, TEXT("Dodge Excuted!"));
+    //UE_LOG(LogTemp, Warning, TEXT("Dodge Excuted!"));
     // 문제가 없다면 회피 호출 후 true 리턴
     DodgeStart(Time);
     return true;
@@ -463,6 +528,35 @@ void APlayerBase::DodgeStart(float Time)
 void APlayerBase::DodgeEnd()
 {
     Super::DodgeEnd();
+
+    if (!MovementComp)
+    {
+        return;
+    }
+
+    if (bSaveJump)
+    {
+        bSaveJump = false;
+
+        // 애니메이션 강제종료, 노티파이 스테이트의 UnCrouch 강제호출
+        StopAnimationOverride();
+
+        // 점프 실행
+        TryJump();
+
+        UE_LOG(LogTemp, Warning, TEXT("Buffered Jump Executed!"));
+
+        return;
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("Boost Speed temporarily Afeter Dodge"));
+
+    // 대시 직후 속도를 평소보다 높게 설정
+    MovementComp->MaxWalkSpeed = DodgeVelocity * 1.1;
+    
+    // 일정 시간 이후 속도를 줄이는 타이머
+    GetWorldTimerManager().SetTimer(MomentumTimerHandle, this, &APlayerBase::DecelerateMomentum, 0.1f, true);
+
 }
 
 void APlayerBase::ResetDodgeCooldown()
@@ -494,6 +588,28 @@ void APlayerBase::AddVelocityWhileDodging()
     MovementComp->Velocity = DashVelocity;
 }
 
+void APlayerBase::DecelerateMomentum()
+{   
+    if (!MovementComp)
+    {
+        return;
+    }
+
+    float NormalRunSpeed = SavedPlayerMaxWalkSpeed;
+    float CurrentMaxSpeed = MovementComp->MaxWalkSpeed;
+
+    if (CurrentMaxSpeed > NormalRunSpeed)
+    {
+        MovementComp->MaxWalkSpeed = FMath::FInterpTo(CurrentMaxSpeed, NormalRunSpeed, 0.1f, 5.0f);
+        //UE_LOG(LogTemp, Warning, TEXT("Current Speed = %.2f"), CurrentMaxSpeed);
+    }
+    else
+    {
+        MovementComp->MaxWalkSpeed = NormalRunSpeed;
+        GetWorldTimerManager().ClearTimer(MomentumTimerHandle);
+    }
+}
+
 void APlayerBase::UnlockMoveInputAfterDodge()
 {
     bIsMoveLockedWhileDodging = false;
@@ -523,14 +639,14 @@ void APlayerBase::StopMoveInstantly()
 void APlayerBase::StartSlideCapsule()
 {
     Crouch();
-    UE_LOG(LogTemp, Warning, TEXT("Slide Capsule Reduced!"));
+    //UE_LOG(LogTemp, Warning, TEXT("Slide Capsule Reduced!"));
 }
 
 void APlayerBase::EndSlideCapsule()
 {   
     // 놀랍게도 천장에 막혀있으면 엔진이 기다렸다 알아서 일어나게 해줌
     UnCrouch();
-    UE_LOG(LogTemp, Warning, TEXT("Slide Capsule Restored!"));
+    //UE_LOG(LogTemp, Warning, TEXT("Slide Capsule Restored!"));
 }
 
 void APlayerBase::OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
@@ -553,8 +669,7 @@ void APlayerBase::OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAd
         SpringArm->AddLocalOffset(FVector(0.0f, 0.0f, FixHeightAdjust));
     }
 
-    // 로그로 높이가 얼마나 보정되었는지 확인
-    UE_LOG(LogTemp, Warning, TEXT("Crouch Started: Mesh moved UP by %f"), FixHeightAdjust);
+    //UE_LOG(LogTemp, Warning, TEXT("Crouch Started: Mesh moved UP by %f"), FixHeightAdjust);
 }
 
 void APlayerBase::OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
@@ -575,7 +690,7 @@ void APlayerBase::OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdju
         SpringArm->AddLocalOffset(FVector(0.0f, 0.0f, FixHeightAdjust));
     }
 
-    UE_LOG(LogTemp, Warning, TEXT("Crouch Ended: Mesh moved DOWN by %f"), FixHeightAdjust);
+    //UE_LOG(LogTemp, Warning, TEXT("Crouch Ended: Mesh moved DOWN by %f"), FixHeightAdjust);
 }
 
 void APlayerBase::ChangeGravity()
@@ -622,13 +737,13 @@ bool APlayerBase::TryGuard()
             bSaveGuard = false;
         }), GuardBufferTime, false);
         
-        UE_LOG(LogTemp, Warning, TEXT("Guard Input Buffered!"));
+        //UE_LOG(LogTemp, Warning, TEXT("Guard Input Buffered!"));
 
         // 가드 안됬으니 false 리턴
         return false;
     }
 
-    UE_LOG(LogTemp, Warning, TEXT("Player Guard Excuted!"));
+    //UE_LOG(LogTemp, Warning, TEXT("Player Guard Excuted!"));
     // 문제 없으면 가드 실행 및 true 리턴 
     GuardStart();
     return true;
@@ -656,7 +771,7 @@ void APlayerBase::EndGuard()
 {
     Super::EndGuard();
 
-    UE_LOG(LogTemp, Warning, TEXT("C++ PlayerBase: EndGuardCalled!"));
+    //UE_LOG(LogTemp, Warning, TEXT("C++ PlayerBase: EndGuardCalled!"));
 }
 
 void APlayerBase::ResetGuardCooldown()
@@ -665,7 +780,7 @@ void APlayerBase::ResetGuardCooldown()
 
     if (bSaveGuard && !bIsAttacking && IsCharacterCanAction())
     {
-        UE_LOG(LogTemp, Warning, TEXT("C++ PlayerBase: Excute Buffered Guard After Guard"));
+        //UE_LOG(LogTemp, Warning, TEXT("C++ PlayerBase: Excute Buffered Guard After Guard"));
         GuardStart();
     }
 }
