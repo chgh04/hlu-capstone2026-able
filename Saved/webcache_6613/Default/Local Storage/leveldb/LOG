@@ -1,3 +1,13 @@
-2026/04/08-17:37:48.931 5f90 Reusing MANIFEST E:\Unreal\hlu-capstone2026-able\Saved\webcache_6613\Default\Local Storage\leveldb/MANIFEST-000001
-2026/04/08-17:37:48.934 5f90 Recovering log #117
-2026/04/08-17:37:48.936 5f90 Reusing old log E:\Unreal\hlu-capstone2026-able\Saved\webcache_6613\Default\Local Storage\leveldb/000117.log 
+2026/04/08-19:31:32.406 1ca0 Reusing MANIFEST E:\Unreal\hlu-capstone2026-able\Saved\webcache_6613\Default\Local Storage\leveldb/MANIFEST-000001
+2026/04/08-19:31:32.415 1ca0 Recovering log #123
+2026/04/08-19:31:32.416 1ca0 Reusing old log E:\Unreal\hlu-capstone2026-able\Saved\webcache_6613\Default\Local Storage\leveldb/000123.log 
+2026/04/08-19:31:32.416 1ca0 Delete type=2 #125
+2026/04/08-19:31:32.416 4c74 Compacting 4@0 + 1@1 files
+2026/04/08-19:31:32.422 4c74 Generated table #126@0: 7 keys, 27195 bytes
+2026/04/08-19:31:32.422 4c74 Compacted 4@0 + 1@1 files => 27195 bytes
+2026/04/08-19:31:32.422 4c74 compacted to: files[ 0 1 0 0 0 0 0 ]
+2026/04/08-19:31:32.423 4c74 Delete type=2 #112
+2026/04/08-19:31:32.423 4c74 Delete type=2 #114
+2026/04/08-19:31:32.423 4c74 Delete type=2 #118
+2026/04/08-19:31:32.423 4c74 Delete type=2 #120
+2026/04/08-19:31:32.423 4c74 Delete type=2 #124

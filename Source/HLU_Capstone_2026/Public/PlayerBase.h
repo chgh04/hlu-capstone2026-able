@@ -24,7 +24,7 @@ protected:
 
     virtual void Tick(float DeltaTime) override;
 
-// 컴포넌트 생성 -------------------
+// 컴포넌트 생성 --------------------------------------
 protected:
     // 카메라 암
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
@@ -34,7 +34,7 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
     TObjectPtr<class UCameraComponent> MainCamera;
 
-// 공격 기능 함수/변수 -------------------
+// 공격 기능 함수/변수 --------------------------------------
 protected:
     // 상속받은 TryAttack 오버라이드
     virtual void TryAttack() override;
@@ -81,11 +81,12 @@ protected:
     UFUNCTION(BlueprintImplementableEvent, Category = "Combat")
     void PlayDownwardAirAttackAnimation();
 
+public:
     // 플레이어의 애니메이션 강제종료 함수
     UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "Combat")
     void StopAnimationOverride();
 
-// 플레이어 콤보 공격 관련 -------------------
+// 플레이어 콤보 공격 관련 --------------------------------------
 protected:
     // 플레이어 콤보 연계가 가능하도록 전환 (ABP의 노티파이에서 호출함)
     UFUNCTION(BlueprintCallable, Category = "Combat")
@@ -136,7 +137,7 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Combat")
     float HitInvincibleTime = 1.0f;
 
-// 플레이어 이동/회피 관련 함수/변수
+// 플레이어 이동/회피 관련 함수/변수 --------------------------------------
 private:
     float SavedPlayerMaxWalkSpeed;
 
@@ -144,7 +145,14 @@ protected:
     // 캐릭터의 이동모드(걷기, 낙하등)가 변경될 때 호출되는 함수 
     virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 
-    // 점프 시도
+    // 플레이어의 최대 점프 가능 횟수
+    UPROPERTY(EditDefaultsOnly, Category = "Player_Movement")
+    int32 MaxJumpCount = 2;
+
+    // 현재 플레이어의 점프 횟수 카운트
+    int32 CurrentJumpCount = 0; 
+
+    // 점프 시도 함수, 지면에서의 점프인지 공중에서의 점프인지 판단
     UFUNCTION(BlueprintCallable, Category = "Player_Movement")
     virtual void TryJump();
 
@@ -154,10 +162,9 @@ protected:
 
     // 캐릭터가 땅에 닿는 순간 엔진이 자동 호출
     virtual void Landed(const FHitResult& Hit) override;
-
-    // 플레이어 최대 점프 가능 횟수, 근데 이거 어차피 CharacterMovement 클래스에 있는 변수라 안쓸 수 있음
-    UPROPERTY(EditDefaultsOnly, Category = "Player_Movement")
-    int32 MaxJumpCount = 1;
+    
+    // 이단점프 실행 함수
+    void ExcuteDoubleJump();
 
     // 애니메이션 이벤트에서 호출할 전진 스텝 함수 
     UFUNCTION(BlueprintCallable, Category = "Combat")
@@ -175,6 +182,7 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Combat")
     float DodgeVelocity = 500.0f;
 
+    // 플레이어 회피시도함수 재정의
     virtual bool TryDodge(float Time) override;
 
     // 플레이어 회피함수 재정의
@@ -209,6 +217,10 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Player_Movement")
     float CurrentRawInputX = 0.0f;
 
+    // 플레이어 회피시 공중에 떳을때의 감속계수
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player_Movement")
+    float GroundDodgeDecelerateCoefficient = 0.7f;
+
     // 플레이어의 방향을 즉시 전환하는 전용 함수
     void UpdateFacingDirection();
 
@@ -242,7 +254,7 @@ public:
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Player_Movement")
     float GetCurrentRawInputX() { return CurrentRawInputX; }
 
-// 플레이어 가드 관련 함수/변수
+// 플레이어 가드 관련 함수/변수 --------------------------------------
 protected:
     // 부모 TryGuard 재정의
     virtual bool TryGuard() override;
@@ -263,7 +275,42 @@ protected:
     // 부모 ResetGuardCooldown 재정의
     virtual void ResetGuardCooldown() override;
 
-// 기타 추가 기능
+// 플레이어 벽타기 관련 함수/변수 --------------------------------------
+protected:
+    // 플레이어가 벽타기가 가능한 상태인지에 대한 플래그
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player_Movement")
+    bool bCanClimbWall = false;
+
+    // 벽타기 상태 플래그
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_Movement")
+    bool bIsOnWall = false;
+
+    // 벽에서 미끄러지는 속도
+    UPROPERTY(EditDefaultsOnly, Category = "Player_Movement")
+    float WallSlideSpeed = 150.0f;
+
+    // 우리가 매달려 있는 벽의 표면 방향 (벽 점프할 때 튕겨 나갈 방향 계산용)
+    FVector CurrentWallNormal;
+
+    // 매 프레임 벽을 체크하는 함수
+    void CheckWall();
+
+    // 벽 점프 이후 입력 잠금 상태 
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Player_Movement")
+    bool bIsWallJumpInputLocked = false;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Player_Movement")
+    float WallJumpLockoutDuration = 0.2f;
+
+    // 입력 잠금 해제 함수
+    void ReleaseWallJumpLock() { bIsWallJumpInputLocked = false; }
+
+public:
+    // 벽타기 상태 플래그 반환
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Player_Movement")
+    bool GetIsOnWall() { return bIsOnWall; }
+
+// 기타 추가 기능 --------------------------------------
 protected:
     // 플레이어가 이동/공격을 제한하는 이상상태에 있는지 판단하는 함수
     // 행동 가능하면 true, 행동이 불가능하면 false를 반환
@@ -277,5 +324,8 @@ protected:
 
     // 플레이어 회피 이후 관성 감속 타이머 관리자
     FTimerHandle MomentumTimerHandle;
+
+    // 플레이어 벽 점프 이후 입력 잠금 타이머 관리자
+    FTimerHandle WallJumpLockoutTimerHandle;
 
 };

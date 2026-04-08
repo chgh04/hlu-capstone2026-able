@@ -40,8 +40,14 @@ void APlayerBase::Tick(float DeltaTime)
     Super::Tick(DeltaTime);
 
     if (MovementComp)
-    {
+    {   
         ChangeGravity();
+
+        // 벽타기 기능 함수
+        if (bCanClimbWall)
+        {
+            CheckWall();
+        }
     }
 }
 
@@ -321,7 +327,7 @@ void APlayerBase::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 Pr
              
             // 튕겨나가는 속도 0.7배로 깍기
             FVector CurrentVelocity = MovementComp->Velocity;
-            CurrentVelocity.X *= 0.7f;
+            CurrentVelocity.X *= GroundDodgeDecelerateCoefficient;
             MovementComp->Velocity = CurrentVelocity;
             
             // 애니메이션 강제종료(ABP가 제어하는 애니메이션으로 복귀)
@@ -331,16 +337,48 @@ void APlayerBase::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 Pr
 }
 
 void APlayerBase::TryJump()
-{   
+{
     // 1. 컴포넌트 유효성 검사
     if (!MovementComp)
     {
         return;
     }
 
+    // 벽에서 점프가 호출되었을 경우
+    if (bIsOnWall)
+    {
+        bIsOnWall = false;
+
+        // 입력 잠금 활성화
+        bIsWallJumpInputLocked = true;
+
+        // 일정시간 후 입력 잠금 해제
+        GetWorldTimerManager().ClearTimer(WallJumpLockoutTimerHandle);
+        GetWorldTimerManager().SetTimer(WallJumpLockoutTimerHandle, this, &APlayerBase::ReleaseWallJumpLock, WallJumpLockoutDuration, false);
+
+        // 벽 점프 힘 설정 (위로 띄우는 힘 + 벽 반대편으로 밀어내는 힘)
+        float WallJumpZForce = MovementComp->JumpZVelocity;
+        float WallJumpPushForce = 600.0f;   // 반대편으로 밀어내는 수평 힘
+
+        // 점프 방향 최종 결정
+        FVector JumpForce = (CurrentWallNormal * WallJumpPushForce) + FVector(0.0f, 0.0f, WallJumpZForce);
+
+        // 캐릭터 방향도 강제로 벽 반대편으로 돌림
+        SetActorRotation(CurrentWallNormal.Rotation());
+
+        // 캐릭터 발사
+        LaunchCharacter(JumpForce, true, true);
+
+        bIsJumping = true;
+        CurrentJumpCount = 1;
+
+        UE_LOG(LogTemp, Warning, TEXT("Wall Jump!"));
+        return;
+    }
+
     // 2. 점프가 불가능한 상황에서는 점프 불가
     if (!IsCharacterCanAction() || bIsAttacking)
-    {   
+    {
         // 회피 도중 호출될 시 선입력 저장 
         if (bIsDodging)
         {
@@ -359,15 +397,13 @@ void APlayerBase::TryJump()
 
     // 3. 함수 호출 당시의 수직 제외 수평 속도만 추출 및 최대 허용 속도 지정
     FVector HorizontalVelocity = FVector(MovementComp->Velocity.X, MovementComp->Velocity.Y, 0.0f);
-
-    // 허용할 점프 최대 속도
-    float MaxAllowedJumpSpeed = SavedPlayerMaxWalkSpeed * 1.2f;
+    float MaxAllowedJumpSpeed = SavedPlayerMaxWalkSpeed * 1.15f;    // 허용할 점프 최대 속도
 
     // UE_LOG(LogTemp, Warning, TEXT("Jump Tried!"));
 
     // 4. 플레이어 적용 속도 계산
     if (HorizontalVelocity.Size() > MaxAllowedJumpSpeed)
-    {   
+    {
         // 속도와 방향을 유지한 채, 크기만 최대 허용치로 줄이기
         HorizontalVelocity = HorizontalVelocity.GetSafeNormal() * MaxAllowedJumpSpeed;
 
@@ -377,25 +413,36 @@ void APlayerBase::TryJump()
         UE_LOG(LogTemp, Warning, TEXT("Dash-Jump Speed Clamped to %f!"), MaxAllowedJumpSpeed);
     }
 
-    // 점프가 가능할 경우
-    // 점프 플래그 활성화
-    bIsJumping = true;
-
-    // 만약 Crouched때문에 엔진 내부에서 점프가 안될 경우, Lauch로 캐릭터 강제 점프
-    if (bIsCrouched)
+    // 5. 이단점프 실행 로직
+    if (MovementComp->IsFalling())
     {
-        UnCrouch();
-
-        UE_LOG(LogTemp, Warning, TEXT("Jump Start! (LauchCharacter)"));
-        FVector JumpForce = FVector(0.f, 0.f, MovementComp->JumpZVelocity);
-        LaunchCharacter(JumpForce, false, true);
-
-        return;
+        if (CurrentJumpCount < MaxJumpCount)
+        {
+            ExcuteDoubleJump();
+            return;
+        }
     }
-    
-    UE_LOG(LogTemp, Warning, TEXT("Jump Start!"));
-    Jump();
+    // 6. 기본 점프(지면에서의) 실행 로직
+    else
+    {
+        bIsJumping = true;  // 점프 플래그 활성화
 
+        // 만약 Crouched때문에 엔진 내부에서 점프가 안될 경우, Lauch로 캐릭터 강제 점프
+        if (bIsCrouched)
+        {
+            UnCrouch();
+
+            UE_LOG(LogTemp, Warning, TEXT("Jump Start! (LauchCharacter)"));
+            FVector JumpForce = FVector(0.f, 0.f, MovementComp->JumpZVelocity);
+            LaunchCharacter(JumpForce, false, true);
+
+            return;
+        }
+
+        UE_LOG(LogTemp, Warning, TEXT("Jump Start!"));
+        CurrentJumpCount = 1;
+        Jump();
+    }
 }
 
 void APlayerBase::TryStopJumping()
@@ -430,7 +477,32 @@ void APlayerBase::Landed(const FHitResult& Hit)
         UE_LOG(LogTemp, Warning, TEXT("Landing Dash Executed by Buffer!"));
     }
 
+    // 점프 횟수 초기화
+    CurrentJumpCount = 0;
+
+    // 벽타기 플래그 초기화
+    bIsOnWall = false;
+
     // TODO: 이펙트, 사운드, 하드랜딩 분기
+}
+
+void APlayerBase::ExcuteDoubleJump()
+{
+    CurrentJumpCount++;
+
+    // 추락 관성 죽이기
+    FVector CurrentVelocity = MovementComp->Velocity;
+    CurrentVelocity.Z = 0.0f;
+    MovementComp->Velocity = CurrentVelocity;
+
+    // 강제로 위로 쏘아올리기
+    FVector JumpForce = FVector(0.f, 0.f, MovementComp->JumpZVelocity * 1.1f);
+    LaunchCharacter(JumpForce, false, true);
+
+    bIsJumping = true;
+    // StopAnimationOverride();
+
+    UE_LOG(LogTemp, Warning, TEXT("Double Jump Executed! Current Count: %d"), CurrentJumpCount);
 }
 
 void APlayerBase::StepForward(float StepForce)
@@ -589,7 +661,16 @@ void APlayerBase::AddVelocityWhileDodging()
 
     // Z값을 현재 플레이어의 Z값으로 바꾸고 적용
     DashVelocity.Z = MovementComp->Velocity.Z;
+
+    // 만약 공중에 있을 경우 강제 감속
+    if (MovementComp->IsFalling())
+    {
+        DashVelocity.X *= GroundDodgeDecelerateCoefficient;
+    }
+
     MovementComp->Velocity = DashVelocity;
+
+    UE_LOG(LogTemp, Warning, TEXT("Dash Velocity Added, X: %.2f, Y: %.2f"), DashVelocity.X, DashVelocity.Y);
 }
 
 void APlayerBase::DecelerateMomentum()
@@ -705,7 +786,7 @@ void APlayerBase::ChangeGravity()
         if (MovementComp->Velocity.Z < 0.0f)
         {   
             // 낙하중일때 2배 강하게 끌어당김
-            MovementComp->GravityScale = 2.25f;
+            MovementComp->GravityScale = 2.0f;
         }
         else
         {   
@@ -785,6 +866,62 @@ void APlayerBase::ResetGuardCooldown()
     {
         //UE_LOG(LogTemp, Warning, TEXT("C++ PlayerBase: Excute Buffered Guard After Guard"));
         GuardStart();
+    }
+}
+
+void APlayerBase::CheckWall()
+{
+    if (!MovementComp->IsFalling() || !IsCharacterCanAction())
+    {
+        if (bIsOnWall)
+        {
+            bIsOnWall = false;
+        }
+        return;
+    }
+
+    FHitResult HitResult;
+    // 캐릭터 위치
+    FVector StartLocation = GetActorLocation();
+    // 캐릭터 전방 50cm 거리
+    FVector EndLocation = StartLocation + (GetActorForwardVector() * 50.0f);
+
+    // 라인 트레이스 발사 (Visibility 채널로 검사 )
+    bool bHit = GetWorld()->LineTraceSingleByChannel(
+        HitResult, StartLocation, EndLocation, ECC_Visibility
+    );
+
+    // 레이저에 뭐가 맞으면
+    if (bHit && HitResult.GetActor()->ActorHasTag(FName("Climbable")))
+    {
+        // UE_LOG(LogTemp, Warning, TEXT("Climbable Detected!"));
+        // 벽의 수직방향과 플레이어 전방 방향의 내적
+        float DotProduct = FVector::DotProduct(GetActorForwardVector(), HitResult.Normal);
+
+        if (DotProduct < -0.5f && MovementComp->Velocity.Z <= 300.0f) // 떨어지는 중일때 매달림
+        {
+            if (!bIsOnWall)
+            {   
+                bIsOnWall = true;
+                CurrentWallNormal = HitResult.Normal;   // 벽에서의 반발 방향 저장
+                CurrentJumpCount = 1;   // 점프 제한
+
+                UE_LOG(LogTemp, Warning, TEXT("Grabbed the Wall!"));
+            }
+
+            FVector CurrentVelocity = MovementComp->Velocity;   // 현재 이동속도 저장
+            CurrentVelocity.Z = -WallSlideSpeed;
+            CurrentVelocity.X = 0.0f;
+            MovementComp->Velocity = CurrentVelocity;
+
+            return;
+        }
+    }
+
+    if (bIsOnWall)
+    {
+        bIsOnWall = false;
+        UE_LOG(LogTemp, Warning, TEXT("Detached from Wall"));
     }
 }
 
