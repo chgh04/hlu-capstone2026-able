@@ -300,7 +300,7 @@ protected:
     bool bIsWallJumpInputLocked = false;
 
     UPROPERTY(EditDefaultsOnly, Category = "Player_Movement")
-    float WallJumpLockoutDuration = 0.2f;
+    float WallJumpLockoutDuration = 0.15f;
 
     // 입력 잠금 해제 함수
     void ReleaseWallJumpLock() { bIsWallJumpInputLocked = false; }
