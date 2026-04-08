@@ -44,17 +44,41 @@ protected:
 
 // Enemy 공격 기능 함수/변수 -------------------
 protected:
+    virtual void TryAttack() override;
+
     // 상속받은 Attack_Implemetation 함수 구현
     virtual void Attack_Implementation() override;
 
     // 공격 대상을 구분하는 함수(플레이어) 구체화
     virtual bool CanAttackTarget(AActor* Target) const;
 
-    virtual bool GetHit(const FDamageData& DamageData) override;
-
-    // 공격 사거리, TODO: Attack Overlap Box와 같은 사이즈로 전환
+    // 공격 사거리
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
     float AttackRange = 100.0f;
+
+    // 애니메이션 노티파이에서 호출할 전진 스텝 함수 
+    UFUNCTION(BlueprintCallable, Category = "Combat")
+    void StepForward();
+
+    // 캐릭터의 공격 시 전진성, 만약 패턴마다 다르게 하고싶다면 노티파이 등에서 변경 가능합니다. 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+    float EnemyAttackStepForce = 200.f;
+
+    
+public:
+    // 캐릭터의 공격 시 전진성 변경 함수
+    UFUNCTION(BlueprintCallable, Category = "Combat")
+    void SetEnemyAttackStepForce(float Value) { EnemyAttackStepForce = Value; }
+
+
+
+// Enemy 피격 기능 함수/변수 -------------------
+protected:
+    virtual bool GetHit(const FDamageData& DamageData) override;
+
+    // 캐릭터가 피격중인 상태일 경우
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+    bool bIsHit = false;
 
 // 플레이어 감지(AI) 관련 함수/변수 -------------------
 protected:
@@ -96,5 +120,7 @@ private:
 
 // 기타 추가 기능
 protected:
+    virtual bool IsCharacterCanAction() override;
+
     FTimerHandle HitStunTimerHandle;
 };

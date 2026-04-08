@@ -61,7 +61,10 @@ void AEnemyBase::Tick(float DeltaTime)
         break;
 
     case EEnemyState::Attack:
-        if (bIsAttacking) break;
+        if (!IsCharacterCanAction() || bIsAttacking)
+        {
+            break;
+        }
         //UE_LOG(LogTemp, Warning, TEXT("AI: Attack"));
         // 이동 멈춤 및 공격 실행
         TryAttack();
@@ -79,6 +82,29 @@ void AEnemyBase::Tick(float DeltaTime)
 
         break;
     }
+}
+
+void AEnemyBase::OnDeath_Implementation()
+{
+    UE_LOG(LogTemp, Warning, TEXT("AI: Enemy OnDeath Called!"));
+
+    // 부모공통로직 실행
+    Super::OnDeath_Implementation();
+
+    CurrentState = EEnemyState::Dead;
+
+    PrimaryActorTick.bCanEverTick = false;
+}
+
+void AEnemyBase::TryAttack() 
+{
+    if (bIsAttacking || !IsCharacterCanAction())
+    {
+        //UE_LOG(LogTemp, Warning, TEXT("C++: Attack Return"));
+        return;
+    }
+
+    Attack();
 }
 
 void AEnemyBase::Attack_Implementation()
@@ -109,6 +135,34 @@ bool AEnemyBase::CanAttackTarget(AActor* Target) const
     return TagInterface->HasMatchingGameplayTag(PlayerTag);
 }
 
+void AEnemyBase::StepForward()
+{
+    // 넉백중 등 이동 불가능 상태에선 무시
+    if (!IsCharacterCanAction())
+    {
+        return;
+    }
+
+    // 캐릭터 무브먼트 컴포넌트 없으면 리턴
+    if (!MovementComp)
+    {
+        return;
+    }
+
+    // 지면마찰력을 0으로 변경
+    MovementComp->GroundFriction = 0.0f;
+    
+
+
+    // 속도 적용
+    FVector ForwardDir = GetActorForwardVector();   // 캐릭터 전방 벡터 구하기
+    FVector DashVelocity = ForwardDir * EnemyAttackStepForce;
+    DashVelocity.Z = MovementComp->Velocity.Z;
+    MovementComp->Velocity = DashVelocity;
+
+    UE_LOG(LogTemp, Warning, TEXT("AI: Change GroundFriction to 0 and Dash Start!, Velocity = %.2f"), DashVelocity.X);
+}
+
 bool AEnemyBase::GetHit(const FDamageData& DamageData)
 {
     // 부모 로직 실행, 피격이 유효하지 않았다면 리턴
@@ -123,26 +177,15 @@ bool AEnemyBase::GetHit(const FDamageData& DamageData)
     // 현재 캐릭터의 물리적 속도를 제거 (이건 선택사항)
     GetCharacterMovement()->StopMovementImmediately();
 
-    // 공격이 불가능하도록 bIsAttacking을 True로 지정
+    // Hit 플래그 활성화 및 공격 로직 초기화 (지면마찰력 초기화)
     bIsAttacking = true;
+    EndAttackState();
 
-    // 타이머 설정 및 타이머 이후 호출 함수 지정(ResetHitStateOnSimpleFSM)
+    // 타이머 설정 및 타이머 이후 호출 함수 지정(ResetHitStateOnSimpleFSM) - Hit 상태 해제 타이머
     GetWorldTimerManager().ClearTimer(HitStunTimerHandle);
     GetWorldTimerManager().SetTimer(HitStunTimerHandle, this, &AEnemyBase::ResetHitStateOnSimpleFSM, StunDuration, false);
 
     return true;
-}
-
-void AEnemyBase::OnDeath_Implementation()
-{   
-    UE_LOG(LogTemp, Warning, TEXT("AI: Enemy OnDeath Called!"));
-
-    // 부모공통로직 실행
-    Super::OnDeath_Implementation();
-
-    CurrentState = EEnemyState::Dead;
-
-    PrimaryActorTick.bCanEverTick = false;
 }
 
 void AEnemyBase::OnDetectionBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -210,6 +253,7 @@ void AEnemyBase::CallAttackEndOnSimpleFSM()
     // 공격이 중단되어도(Hit 등) 전환
     CurrentState = EEnemyState::Chase;
     bIsAttacking = false;
+    EndAttackState();
 }
 
 void AEnemyBase::ResetHitStateOnSimpleFSM()
@@ -219,10 +263,20 @@ void AEnemyBase::ResetHitStateOnSimpleFSM()
         return;
     }
 
-    // 다시 공격이 가능하도록 전환
-    bIsAttacking = false;
+    // 플래그 초기화
+    bIsHit = false;
 
     // 만약 타겟 플레이어가 있다면 추적, 없으면 일반(Patrol)
     CurrentState = (TargetPlayer) ? EEnemyState::Chase : EEnemyState::Patrol;
     UE_LOG(LogTemp, Warning, TEXT("AI: Hit Stun Ended, Returning to Normal"));
+}
+
+bool AEnemyBase::IsCharacterCanAction()
+{
+    bool bIsCanAct = Super::IsCharacterCanAction();
+
+    // 행동 가능한 상태 또는 공격중이지 않은 상태
+    bIsCanAct = bIsCanAct || !bIsHit;
+
+    return bIsCanAct;
 }

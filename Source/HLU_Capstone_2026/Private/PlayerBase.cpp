@@ -135,7 +135,7 @@ bool APlayerBase::CanAttackTarget(AActor* Target) const
 
 void APlayerBase::AirDefaultAttack()
 {
-    UE_LOG(LogTemp, Warning, TEXT("Air Default Attack Called"));
+    //UE_LOG(LogTemp, Warning, TEXT("Air Default Attack Called"));
 
     // 공중 일반공격 애니메이션 재생
     PlayDefaultAirAttackAnimation();
@@ -143,7 +143,7 @@ void APlayerBase::AirDefaultAttack()
 
 void APlayerBase::AirDownwardAttack()
 {   
-    UE_LOG(LogTemp, Warning, TEXT("Air Downward Attack Called"));
+    //UE_LOG(LogTemp, Warning, TEXT("Air Downward Attack Called"));
 
     // 공중 공격 시 약간의 공중 체공 기능
     /*FVector CurrentVelocity = MovementComp->Velocity;
@@ -153,7 +153,7 @@ void APlayerBase::AirDownwardAttack()
     // 공중 하단공격 애니메이션 재생 
     PlayDownwardAirAttackAnimation();
 
-    UE_LOG(LogTemp, Warning, TEXT("Air Attack Executed! Suspension applied."));
+    //UE_LOG(LogTemp, Warning, TEXT("Air Attack Executed! Suspension applied."));
 }
 
 void APlayerBase::CheckCombo()
@@ -175,7 +175,7 @@ void APlayerBase::ResetCombo()
     // 가드 선입력이 있는지 판단, 가드 선입력이 눌려질 시 선입력된 회피/공격은 취소
     if (bSaveGuard && bCanGuard)
     {   
-        UE_LOG(LogTemp, Warning, TEXT("Guard Input Buffered Excuted!"));
+        //UE_LOG(LogTemp, Warning, TEXT("Guard Input Buffered Excuted!"));
         bSaveGuard = false;
         bSaveAttack = false;
         bSaveDodge = false;
@@ -236,12 +236,6 @@ void APlayerBase::ResetCombo()
 
 void APlayerBase::EndAttackState()
 {   
-    // 지면마찰력 재적용
-    if (MovementComp)
-    {
-        MovementComp->GroundFriction = SavedGroundFriction;
-    }
-
     // 부모로직(bIsAttacking = false) 호출
     Super::EndAttackState();
 
@@ -305,7 +299,7 @@ bool APlayerBase::GetHit(const FDamageData& DamageData)
             bIsInvincible = false;
             bIsKnockBack = false;
 
-            UE_LOG(LogTemp, Warning, TEXT("C++: Hit Stun & Invincible Ended"));
+            //UE_LOG(LogTemp, Warning, TEXT("C++: Hit Stun & Invincible Ended"));
         }), HitInvincibleTime, false);
 
     return true;
@@ -372,7 +366,7 @@ void APlayerBase::TryJump()
         bIsJumping = true;
         CurrentJumpCount = 1;
 
-        UE_LOG(LogTemp, Warning, TEXT("Wall Jump!"));
+        //UE_LOG(LogTemp, Warning, TEXT("Wall Jump!"));
         return;
     }
 
@@ -383,12 +377,12 @@ void APlayerBase::TryJump()
         if (bIsDodging)
         {
             bSaveJump = true;
-            UE_LOG(LogTemp, Warning, TEXT("Jump Buffered during Dash!"));
+            //UE_LOG(LogTemp, Warning, TEXT("Jump Buffered during Dash!"));
 
             FTimerHandle BufferTimer;
             GetWorldTimerManager().SetTimer(BufferTimer, FTimerDelegate::CreateLambda([this]() {
                 bSaveDodge = false;
-                UE_LOG(LogTemp, Warning, TEXT("Jump Buffered Cancelled"));
+                //UE_LOG(LogTemp, Warning, TEXT("Jump Buffered Cancelled"));
                 }), 0.2f, false);
         }
 
@@ -410,7 +404,7 @@ void APlayerBase::TryJump()
         // 조절된 수평 속도에 기존 Z축 속도를 합쳐서 덮어씌우기
         MovementComp->Velocity = FVector(HorizontalVelocity.X, HorizontalVelocity.Y, MovementComp->Velocity.Z);
 
-        UE_LOG(LogTemp, Warning, TEXT("Dash-Jump Speed Clamped to %f!"), MaxAllowedJumpSpeed);
+        //UE_LOG(LogTemp, Warning, TEXT("Dash-Jump Speed Clamped to %f!"), MaxAllowedJumpSpeed);
     }
 
     // 5. 이단점프 실행 로직
@@ -432,14 +426,14 @@ void APlayerBase::TryJump()
         {
             UnCrouch();
 
-            UE_LOG(LogTemp, Warning, TEXT("Jump Start! (LauchCharacter)"));
+            //UE_LOG(LogTemp, Warning, TEXT("Jump Start! (LauchCharacter)"));
             FVector JumpForce = FVector(0.f, 0.f, MovementComp->JumpZVelocity);
             LaunchCharacter(JumpForce, false, true);
 
             return;
         }
 
-        UE_LOG(LogTemp, Warning, TEXT("Jump Start!"));
+        //UE_LOG(LogTemp, Warning, TEXT("Jump Start!"));
         CurrentJumpCount = 1;
         Jump();
     }
@@ -474,7 +468,7 @@ void APlayerBase::Landed(const FHitResult& Hit)
 
         DodgeStart(DodgeDuration);
 
-        UE_LOG(LogTemp, Warning, TEXT("Landing Dash Executed by Buffer!"));
+        //UE_LOG(LogTemp, Warning, TEXT("Landing Dash Executed by Buffer!"));
     }
 
     // 점프 횟수 초기화
@@ -535,7 +529,6 @@ void APlayerBase::StepForward(float StepForce)
     FVector ForwardDir = GetActorForwardVector();   // 캐릭터 전방 벡터 구하기
     FVector DashVelocity = ForwardDir * FinalForce;
     DashVelocity.Z = MovementComp->Velocity.Z;
-
     MovementComp->Velocity = DashVelocity;
 
     //UE_LOG(LogTemp, Warning, TEXT("Current Speed: %f, Final Force: %f, Threshold: %f"), SavedAttackSpeed, FinalForce, RunThreshold);
@@ -552,7 +545,7 @@ bool APlayerBase::TryDodge(float Time)
     // 만약 회피가 불가능한 상황이면 회피하지 않고 false 리턴
     if (!IsCharacterCanAction())
     {   
-        UE_LOG(LogTemp, Warning, TEXT("Dodge Return"));
+        //UE_LOG(LogTemp, Warning, TEXT("Dodge Return"));
         return false;
     }
 
@@ -561,13 +554,13 @@ bool APlayerBase::TryDodge(float Time)
     {   
         // 회피 선입력 트리거를 활성화
         bSaveDodge = true;
-        UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffered"));
+        //UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffered"));
 
         // 0.n초 뒤 예약 자동 해제
         FTimerHandle BufferTimer;
         GetWorldTimerManager().SetTimer(BufferTimer, FTimerDelegate::CreateLambda([this]() {
                 bSaveDodge = false;
-                UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffer Canceled"));
+                //UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffer Canceled"));
             }), 0.25f, false);
 
         // 회피가 실행되지 않았으니 false 리턴
@@ -616,7 +609,7 @@ void APlayerBase::DodgeEnd()
         // 애니메이션 강제종료, 노티파이 스테이트의 UnCrouch 강제호출
         StopAnimationOverride();
 
-        UE_LOG(LogTemp, Warning, TEXT("Buffered Jump Executed!"));
+        //UE_LOG(LogTemp, Warning, TEXT("Buffered Jump Executed!"));
 
         // 점프 실행
         TryJump();
@@ -670,7 +663,7 @@ void APlayerBase::AddVelocityWhileDodging()
 
     MovementComp->Velocity = DashVelocity;
 
-    UE_LOG(LogTemp, Warning, TEXT("Dash Velocity Added, X: %.2f, Y: %.2f"), DashVelocity.X, DashVelocity.Y);
+    //UE_LOG(LogTemp, Warning, TEXT("Dash Velocity Added, X: %.2f, Y: %.2f"), DashVelocity.X, DashVelocity.Y);
 }
 
 void APlayerBase::DecelerateMomentum()
@@ -898,7 +891,7 @@ void APlayerBase::CheckWall()
         // 벽의 수직방향과 플레이어 전방 방향의 내적
         float DotProduct = FVector::DotProduct(GetActorForwardVector(), HitResult.Normal);
 
-        if (DotProduct < -0.5f && MovementComp->Velocity.Z <= 300.0f) // 떨어지는 중일때 매달림
+        if (DotProduct < -0.5f && MovementComp->Velocity.Z <= 400.0f) // 떨어지는 중일때 매달림
         {
             if (!bIsOnWall)
             {   
@@ -906,9 +899,10 @@ void APlayerBase::CheckWall()
                 CurrentWallNormal = HitResult.Normal;   // 벽에서의 반발 방향 저장
                 CurrentJumpCount = 1;   // 점프 제한
 
-                UE_LOG(LogTemp, Warning, TEXT("Grabbed the Wall!"));
+                //UE_LOG(LogTemp, Warning, TEXT("Grabbed the Wall!"));
             }
 
+            // 벽에서 미끌어져 내려오게 만들기
             FVector CurrentVelocity = MovementComp->Velocity;   // 현재 이동속도 저장
             CurrentVelocity.Z = -WallSlideSpeed;
             CurrentVelocity.X = 0.0f;
@@ -921,8 +915,31 @@ void APlayerBase::CheckWall()
     if (bIsOnWall)
     {
         bIsOnWall = false;
-        UE_LOG(LogTemp, Warning, TEXT("Detached from Wall"));
+        //UE_LOG(LogTemp, Warning, TEXT("Detached from Wall"));
     }
+}
+
+float APlayerBase::FilterInputWhileOnWall(float MovementVectorX)
+{   
+    FVector ReturnValue = FVector::Zero();
+
+    // 벽을 타고 있을때만 동작
+    if (bIsOnWall)
+    {   
+        // 두 값의 부호가 다름 = 벽 방향으로 방향키 입력중
+        if (MovementVectorX * CurrentWallNormal.X < 0.0f)
+        {
+            return 0;
+        }
+        // 두 값의 부호가 같음 = 벽 반대 방향으로 방향키 입력중
+        else if(MovementVectorX * CurrentWallNormal.X > 0.0f)
+        {
+            bIsOnWall = false;
+            return MovementVectorX;
+        }
+    }
+
+    return MovementVectorX;
 }
 
 bool APlayerBase::IsCharacterCanAction()

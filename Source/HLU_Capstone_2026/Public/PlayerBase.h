@@ -166,7 +166,7 @@ protected:
     // 이단점프 실행 함수
     void ExcuteDoubleJump();
 
-    // 애니메이션 이벤트에서 호출할 전진 스텝 함수 
+    // 애니메이션 노티파이에서 호출할 전진 스텝 함수 
     UFUNCTION(BlueprintCallable, Category = "Combat")
     void StepForward(float StepForce = 200.0f);
 
@@ -305,6 +305,10 @@ protected:
     // 입력 잠금 해제 함수
     void ReleaseWallJumpLock() { bIsWallJumpInputLocked = false; }
 
+    // 벽을 타고있을 때 입력값 필터링 함수
+    UFUNCTION(BlueprintCallable, Category = "Player_Movement")
+    float FilterInputWhileOnWall(float MovementVectorX);
+
 public:
     // 벽타기 상태 플래그 반환
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Player_Movement")
@@ -328,4 +332,8 @@ protected:
     // 플레이어 벽 점프 이후 입력 잠금 타이머 관리자
     FTimerHandle WallJumpLockoutTimerHandle;
 
+// VFX 및 오디오 에셋
+protected:
+    UPROPERTY(EditDefaultsOnly, Category = "VFX")
+    class UNiagaraSystem* GuardEffect;
 };

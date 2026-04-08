@@ -120,8 +120,8 @@ void ADefaultCharBase::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer)
 void ADefaultCharBase::TryAttack()
 {
     // 상태검사, 공격 중 / 사망 / 넉백 / 피해무적상태(추후 추가 가능) 등등이라면 공격 불가
-    // Enemy 클래스는 그대로 사용 가능, Player클래스는 부모클래스를 사용하지 않고 재정의합니다. 
-    if (bIsAttacking || bIsKnockBack)
+    // Enemy, Player클래스는 부모클래스를 사용하지 않고 재정의합니다. (함수 내부에서 호출하는 함수때문에 그럼)
+    if (bIsAttacking || !IsCharacterCanAction())
     {
         //UE_LOG(LogTemp, Warning, TEXT("C++: Attack Return"));
         return;
@@ -150,6 +150,13 @@ void ADefaultCharBase::EndAttackCollision()
 void ADefaultCharBase::EndAttackState()
 {
     bIsAttacking = false;
+
+    // 지면마찰력 재적용
+    if (MovementComp)
+    {
+        MovementComp->GroundFriction = SavedGroundFriction;
+        UE_LOG(LogTemp, Warning, TEXT("Default Char: Change GroundFriction to Normal"));
+    }
 
     // 마찬가지로 BP에서 오버라이드 해 별도 필요 기능을 구현할 수 있음
 }
@@ -422,13 +429,13 @@ void ADefaultCharBase::DodgeEnd()
         MovementComp->GroundFriction = SavedGroundFriction;
     }
 
-    UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Now Dodge End!"));
+    // UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Now Dodge End!"));
 }
 
 void ADefaultCharBase::ResetDodgeCooldown()
 {
     bCanDodge = true;
-    UE_LOG(LogTemp, Warning, TEXT("Dodge is Ready again!"));
+    // UE_LOG(LogTemp, Warning, TEXT("Dodge is Ready again!"));
 }
 
 bool ADefaultCharBase::TryGuard()
