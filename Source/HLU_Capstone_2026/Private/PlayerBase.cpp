@@ -314,19 +314,18 @@ void APlayerBase::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 Pr
     if (PrevMovementMode == MOVE_Walking && GetCharacterMovement()->MovementMode == MOVE_Falling)
     {
         if (bIsCrouched)
-        {
-            //UE_LOG(LogTemp, Warning, TEXT("Slid off a ledge! Enforcing safety logic."));
-
-            // 캡슐, 스프라이트, 카메라 암 복구
-            //UnCrouch();
-
-            // 튕겨나가는 속도 절반으로 깍기
+        {   
+            // 절벽에서 떨어졌을 때 선입력 플래그 모두 초기화
+            bSaveDodge = false;
+            bSaveJump = false;  
+             
+            // 튕겨나가는 속도 0.7배로 깍기
             FVector CurrentVelocity = MovementComp->Velocity;
-            CurrentVelocity.X *= 0.5f;
-
+            CurrentVelocity.X *= 0.7f;
             MovementComp->Velocity = CurrentVelocity;
-
-            StopAnimationOverride();
+            
+            // 애니메이션 강제종료(ABP가 제어하는 애니메이션으로 복귀)
+            // StopAnimationOverride();
         }
     }
 }
@@ -364,7 +363,7 @@ void APlayerBase::TryJump()
     // 허용할 점프 최대 속도
     float MaxAllowedJumpSpeed = SavedPlayerMaxWalkSpeed * 1.2f;
 
-    UE_LOG(LogTemp, Warning, TEXT("Jump Tried!"));
+    // UE_LOG(LogTemp, Warning, TEXT("Jump Tried!"));
 
     // 4. 플레이어 적용 속도 계산
     if (HorizontalVelocity.Size() > MaxAllowedJumpSpeed)
@@ -378,9 +377,7 @@ void APlayerBase::TryJump()
         UE_LOG(LogTemp, Warning, TEXT("Dash-Jump Speed Clamped to %f!"), MaxAllowedJumpSpeed);
     }
 
-
     // 점프가 가능할 경우
-
     // 점프 플래그 활성화
     bIsJumping = true;
 
@@ -389,16 +386,17 @@ void APlayerBase::TryJump()
     {
         UnCrouch();
 
+        UE_LOG(LogTemp, Warning, TEXT("Jump Start! (LauchCharacter)"));
         FVector JumpForce = FVector(0.f, 0.f, MovementComp->JumpZVelocity);
         LaunchCharacter(JumpForce, false, true);
 
         return;
     }
     
+    UE_LOG(LogTemp, Warning, TEXT("Jump Start!"));
     Jump();
 
 }
-
 
 void APlayerBase::TryStopJumping()
 {   
@@ -413,8 +411,6 @@ void APlayerBase::Landed(const FHitResult& Hit)
     // 공중 공격 도중 착지하였을 경우
     if (bIsAttacking)
     {
-        //UE_LOG(LogTemp, Warning, TEXT("Air Attack Canceled by Landing!"));
-
         EndAttackState();
 
         FullResetCombo();
@@ -424,6 +420,15 @@ void APlayerBase::Landed(const FHitResult& Hit)
 
     // 점프 플래그 비활성화
     bIsJumping = false;
+
+    if (bSaveDodge)
+    {
+        bSaveDodge = false;
+
+        DodgeStart(DodgeDuration);
+
+        UE_LOG(LogTemp, Warning, TEXT("Landing Dash Executed by Buffer!"));
+    }
 
     // TODO: 이펙트, 사운드, 하드랜딩 분기
 }
@@ -472,28 +477,26 @@ bool APlayerBase::TryDodge(float Time)
         return false;
     }*/
 
-    //UE_LOG(LogTemp, Warning, TEXT("Dodge Tried!"));
-
     // 만약 회피가 불가능한 상황이면 회피하지 않고 false 리턴
     if (!IsCharacterCanAction())
     {   
-        //UE_LOG(LogTemp, Warning, TEXT("Dodge Ignored! Character Cannot Action!"));
+        UE_LOG(LogTemp, Warning, TEXT("Dodge Return"));
         return false;
     }
 
     // 공격 도중 선입력이 있었거나 회피 불가능한 상황에서 입력이 있었을 경우
-    if (bIsAttacking || !bCanDodge)
+    if (bIsAttacking || !bCanDodge || MovementComp->IsFalling())
     {   
         // 회피 선입력 트리거를 활성화
         bSaveDodge = true;
-        //UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffered"));
+        UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffered"));
 
         // 0.n초 뒤 예약 자동 해제
         FTimerHandle BufferTimer;
         GetWorldTimerManager().SetTimer(BufferTimer, FTimerDelegate::CreateLambda([this]() {
                 bSaveDodge = false;
-                //UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffer Canceled"));
-            }), 0.3f, false);
+                UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffer Canceled"));
+            }), 0.25f, false);
 
         // 회피가 실행되지 않았으니 false 리턴
         return false;
@@ -541,18 +544,19 @@ void APlayerBase::DodgeEnd()
         // 애니메이션 강제종료, 노티파이 스테이트의 UnCrouch 강제호출
         StopAnimationOverride();
 
+        UE_LOG(LogTemp, Warning, TEXT("Buffered Jump Executed!"));
+
         // 점프 실행
         TryJump();
-
-        UE_LOG(LogTemp, Warning, TEXT("Buffered Jump Executed!"));
 
         return;
     }
 
-    UE_LOG(LogTemp, Warning, TEXT("Boost Speed temporarily Afeter Dodge"));
-
-    // 대시 직후 속도를 평소보다 높게 설정
-    MovementComp->MaxWalkSpeed = DodgeVelocity * 1.1;
+    // 캐릭터가 지면에 있다면, 대시 직후 속도를 평소보다 높게 설정
+    if (!MovementComp->IsFalling())
+    {   
+        MovementComp->MaxWalkSpeed = DodgeVelocity * 1.1;
+    }
     
     // 일정 시간 이후 속도를 줄이는 타이머
     GetWorldTimerManager().SetTimer(MomentumTimerHandle, this, &APlayerBase::DecelerateMomentum, 0.1f, true);
@@ -601,7 +605,6 @@ void APlayerBase::DecelerateMomentum()
     if (CurrentMaxSpeed > NormalRunSpeed)
     {
         MovementComp->MaxWalkSpeed = FMath::FInterpTo(CurrentMaxSpeed, NormalRunSpeed, 0.1f, 5.0f);
-        //UE_LOG(LogTemp, Warning, TEXT("Current Speed = %.2f"), CurrentMaxSpeed);
     }
     else
     {
@@ -702,7 +705,7 @@ void APlayerBase::ChangeGravity()
         if (MovementComp->Velocity.Z < 0.0f)
         {   
             // 낙하중일때 2배 강하게 끌어당김
-            MovementComp->GravityScale = 2.0f;
+            MovementComp->GravityScale = 2.25f;
         }
         else
         {   

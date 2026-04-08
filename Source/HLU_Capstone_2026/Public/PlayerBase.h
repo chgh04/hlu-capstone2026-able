@@ -82,7 +82,7 @@ protected:
     void PlayDownwardAirAttackAnimation();
 
     // 플레이어의 애니메이션 강제종료 함수
-    UFUNCTION(BlueprintImplementableEvent, Category = "Combat")
+    UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "Combat")
     void StopAnimationOverride();
 
 // 플레이어 콤보 공격 관련 -------------------
