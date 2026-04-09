@@ -334,6 +334,5 @@ protected:
 
 // VFX 및 오디오
 protected:
-    UPROPERTY(EditDefaultsOnly, Category = "VFX")
-    class UNiagaraSystem* GuardEffect;
+    
 };

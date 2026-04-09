@@ -296,6 +296,10 @@ protected:
 
 	// 피격시 발생하는 나이아가라 시스템 할당 변수
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "VFX")
-	class UNiagaraSystem* HitEffect;
+	class UNiagaraSystem* HitEffect = nullptr;
+
+	// 가드시 발생하는 나이아가라 시스템 할당 변수
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "VFX")
+	class UNiagaraSystem* GuardEffect = nullptr;
 
 };

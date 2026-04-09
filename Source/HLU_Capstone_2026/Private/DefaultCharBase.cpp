@@ -328,6 +328,27 @@ bool ADefaultCharBase::GetHit(const FDamageData& DamageData)
                 // 가드 성공 신호
                 bIsGuardSuccess = true;
 
+                // 가드 성공 이펙트 실행
+                if (GuardEffect)
+                {
+                    // 이펙트가 향할 방향은 피격받은 캐릭터로부터 피격당한 방향
+                    FVector GuardEffectDirection = DamageData.HitDirection * -1.0f;
+                    FRotator GuardEffectRotation = GuardEffectDirection.Rotation();
+
+                    // 나이아가라 이펙트가 스폰 될 위치(해당 캐릭터의 위치)
+                    FVector GuardEffectSpawnLocation = GetActorLocation();
+                    GuardEffectSpawnLocation.Y += 50.0f;
+                    GuardEffectSpawnLocation.Z += 30.0f;
+
+                    // 이펙트 스폰
+                    UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+                        GetWorld(),
+                        GuardEffect,
+                        GuardEffectSpawnLocation,
+                        GuardEffectRotation
+                    );
+                }
+
                 // 가드넉백만큼의 넉백 적용
                 if (MovementComp)
                 {
@@ -365,18 +386,19 @@ bool ADefaultCharBase::GetHit(const FDamageData& DamageData)
     if (HitEffect)
     {   
         // 이펙트가 향할 방향은 피격받은 캐릭터로부터 피격당한 방향
-        FVector EffectDirection = DamageData.HitDirection * -1.0f;
-        FRotator EffectRotation = EffectDirection.Rotation();
+        FVector HitEffectDirection = DamageData.HitDirection * -1.0f;
+        FRotator HitEffectRotation = HitEffectDirection.Rotation();
 
         // 나이아가라 이펙트가 스폰 될 위치(해당 캐릭터의 위치)
-        FVector SpawnLocation = GetActorLocation();
+        FVector HitEffectSpawnLocation = GetActorLocation();
+        HitEffectSpawnLocation.Y += 50.0f;
 
         // 이펙트 스폰
         UNiagaraFunctionLibrary::SpawnSystemAtLocation(
             GetWorld(),
             HitEffect,
-            SpawnLocation,
-            EffectRotation
+            HitEffectSpawnLocation,
+            HitEffectRotation
         );
     }
 
