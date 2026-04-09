@@ -287,4 +287,8 @@ protected:
 	// 캐릭터가 행동 가능한 상태라면 true, 아니라면 false 반환합니다. 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Status")
 	virtual bool IsCharacterCanAction();
+
+// VFX 및 오디오
+protected:
+	
 };

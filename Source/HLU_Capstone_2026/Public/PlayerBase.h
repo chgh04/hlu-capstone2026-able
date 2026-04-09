@@ -332,7 +332,7 @@ protected:
     // 플레이어 벽 점프 이후 입력 잠금 타이머 관리자
     FTimerHandle WallJumpLockoutTimerHandle;
 
-// VFX 및 오디오 에셋
+// VFX 및 오디오
 protected:
     UPROPERTY(EditDefaultsOnly, Category = "VFX")
     class UNiagaraSystem* GuardEffect;
