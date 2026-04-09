@@ -326,6 +326,8 @@ void AEnemyBase::CallAttackEndOnSimpleFSM()
     // 타이머 적용하여 쿨타임 리셋시키기
     GetWorldTimerManager().ClearTimer(AttackCooldownTimerHandle);
     GetWorldTimerManager().SetTimer(AttackCooldownTimerHandle, this, &AEnemyBase::ResetAttackCooldown, RandomCooldown, false);
+
+    UE_LOG(LogTemp, Warning, TEXT("Enemy Attack Finished! Attck Cooldown: %.2f"), RandomCooldown);
 }
 
 void AEnemyBase::ResetHitStateOnSimpleFSM()

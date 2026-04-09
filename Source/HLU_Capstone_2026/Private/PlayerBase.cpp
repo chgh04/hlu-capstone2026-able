@@ -55,7 +55,7 @@ void APlayerBase::TryAttack()
 {   
     // 부모클래스 TryAttack을 실행하지 않고 완전히 재정의
     // 1. 상태검사, 사망 / 넉백 / 피해무적상태(추후 추가 가능) 등등이라면 공격 불가
-    if (!IsCharacterCanAction())
+    if (!IsCharacterCanAction() || bIsOnWall)
     {
         //UE_LOG(LogTemp, Warning, TEXT("C++ Player Attack Return: Other Reason"));
         return;
@@ -284,6 +284,12 @@ bool APlayerBase::GetHit(const FDamageData& DamageData)
     bIsKnockBack = true;
     bIsInvincible = true;
 
+    // 무적 시작 시 머티리얼의 무적 스위치 작동 (점멸 시작)
+    if (DynamicSpriteMat)
+    {
+        DynamicSpriteMat->SetScalarParameterValue(FName("IsInvincible"), 1.0f);
+    }
+
     // 모든 공격 플래그 강제 리셋
     EndAttackState();   // 공격 상태 false로 전환 및 연계 가능 구간 플래그 초기화
     bSaveAttack = false;    // 선입력된 공격 중단
@@ -299,6 +305,10 @@ bool APlayerBase::GetHit(const FDamageData& DamageData)
             bIsInvincible = false;
             bIsKnockBack = false;
 
+            if (DynamicSpriteMat)
+            {
+                DynamicSpriteMat->SetScalarParameterValue(FName("IsInvincible"), 0.0f);
+            }
             //UE_LOG(LogTemp, Warning, TEXT("C++: Hit Stun & Invincible Ended"));
         }), HitInvincibleTime, false);
 

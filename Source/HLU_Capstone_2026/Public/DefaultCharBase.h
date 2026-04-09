@@ -290,5 +290,12 @@ protected:
 
 // VFX 및 오디오
 protected:
-	
+	// 다이나믹 머티리얼 인스턴스를 저장하는 변수
+	UPROPERTY()
+	class UMaterialInstanceDynamic* DynamicSpriteMat;
+
+	// 피격시 발생하는 나이아가라 시스템 할당 변수
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "VFX")
+	class UNiagaraSystem* HitEffect;
+
 };

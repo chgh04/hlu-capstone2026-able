@@ -5,6 +5,9 @@
 #include "Engine/DamageEvents.h"
 #include "CustomDamageType.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "PaperFlipbookComponent.h" 
+#include "Materials/MaterialInstanceDynamic.h"
+#include "NiagaraFunctionLibrary.h"
 
 ADefaultCharBase::ADefaultCharBase()
 {
@@ -41,6 +44,14 @@ void ADefaultCharBase::BeginPlay()
     if (MovementComp)
     {
         SavedGroundFriction = MovementComp->GroundFriction;
+    }
+
+    // 캐릭터가 가진 플립북 컴포넌트를 가져옴
+    UPaperFlipbookComponent* PaperSpriteComp = GetSprite();
+    if (PaperSpriteComp)
+    {
+        // 0번 슬롯의 머티리얼을 기반으로 다이내믹 머티리얼 인스턴스 생성
+        DynamicSpriteMat = PaperSpriteComp->CreateDynamicMaterialInstance(0);
     }
 }
 
@@ -349,6 +360,25 @@ bool ADefaultCharBase::GetHit(const FDamageData& DamageData)
 
     // 피격 상태 진입
     UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Get Hit!"));
+
+    // 나이아가라 피격 이펙트 스폰
+    if (HitEffect)
+    {   
+        // 이펙트가 향할 방향은 피격받은 캐릭터로부터 피격당한 방향
+        FVector EffectDirection = DamageData.HitDirection * -1.0f;
+        FRotator EffectRotation = EffectDirection.Rotation();
+
+        // 나이아가라 이펙트가 스폰 될 위치(해당 캐릭터의 위치)
+        FVector SpawnLocation = GetActorLocation();
+
+        // 이펙트 스폰
+        UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+            GetWorld(),
+            HitEffect,
+            SpawnLocation,
+            EffectRotation
+        );
+    }
 
     // 넉백에 면역이 아닌 경우에
     if (!bIsKnockBackImmune)

@@ -83,8 +83,6 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Combat")
     void SetEnemyAttackStepForce(float Value) { EnemyAttackStepForce = Value; }
 
-
-
 // Enemy 피격 기능 함수/변수 -------------------
 protected:
     virtual bool GetHit(const FDamageData& DamageData) override;
