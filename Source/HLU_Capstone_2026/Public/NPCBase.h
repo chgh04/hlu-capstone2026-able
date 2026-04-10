@@ -42,6 +42,10 @@ public:
     UPROPERTY(BlueprintReadOnly, Category = "NPC")
     int32 CurrentDialogueIndex = 0;
 
+    // 현재 대화 중인지 판단
+    UPROPERTY(BlueprintReadOnly, Category = "NPC")
+    bool bIsInDialogue = false;
+
 public:
     // AInteractableBase의 OnInteract 구현
     virtual void OnInteract_Implementation(AActor* Interactor) override;

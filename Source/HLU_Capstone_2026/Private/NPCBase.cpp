@@ -14,15 +14,20 @@ void ANPCBase::OnInteract_Implementation(AActor* Interactor)
 {
     Super::OnInteract_Implementation(Interactor);
 
-    if (DialogueLines.Num() == 0)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("NPC: [%s] 대화 내용이 없습니다."), *NPCName);
-        return;
-    }
+    if (DialogueLines.Num() == 0) return;
 
-    // 현재 대화 줄 UI에 표시
-    ShowDialogueUI(DialogueLines[CurrentDialogueIndex]);
-    UE_LOG(LogTemp, Warning, TEXT("NPC: [%s] %s"), *NPCName, *DialogueLines[CurrentDialogueIndex]);
+    if (!bIsInDialogue)
+    {
+        // 대화 시작
+        bIsInDialogue = true;
+        CurrentDialogueIndex = 0;
+        ShowDialogueUI(DialogueLines[CurrentDialogueIndex]);
+    }
+    else
+    {
+        // 이미 대화 중이면 다음 줄로
+        AdvanceDialogue();
+    }
 }
 
 void ANPCBase::AdvanceDialogue()
@@ -34,6 +39,7 @@ void ANPCBase::AdvanceDialogue()
         // 대화 끝
         ResetDialogue();
         HideDialogueUI();
+        bIsInDialogue = false;
         return;
     }
 
