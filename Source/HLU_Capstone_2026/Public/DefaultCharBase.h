@@ -56,6 +56,9 @@ protected:
 	// 캐릭터 MovementComponent
 	class UCharacterMovementComponent* MovementComp = nullptr;
 
+	// 캐릭터 페이퍼 플릭북 컴포넌트
+	class UPaperFlipbookComponent* FlipbookComp = nullptr;
+
 // 공격 기능 함수/변수 -------------------
 protected:
 	// 공격이 시작될 때, 공격이 가능한지 확인하는 함수, 호출될 때 공격이 가능하면 공격, 아닐경우 공격하지 않습니다. 자식 클래스에서 재정의 가능

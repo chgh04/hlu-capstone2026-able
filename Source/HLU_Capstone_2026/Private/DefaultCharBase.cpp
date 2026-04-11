@@ -40,6 +40,9 @@ void ADefaultCharBase::BeginPlay()
     // MovementComponent 할당
     MovementComp = GetCharacterMovement();
 
+    // 플립북 컴포넌트 할당
+    FlipbookComp = GetSprite();
+
     // 기존 바닥 마찰력 저장
     if (MovementComp)
     {
