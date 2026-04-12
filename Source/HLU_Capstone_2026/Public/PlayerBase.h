@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "DefaultCharBase.h"
+#include "CheckpointInteractable.h"
 #include "PlayerBase.generated.h"
 
 /**
@@ -12,7 +13,7 @@
  */
 
 UCLASS()
-class HLU_CAPSTONE_2026_API APlayerBase : public ADefaultCharBase
+class HLU_CAPSTONE_2026_API APlayerBase : public ADefaultCharBase, public ICheckpointInteractable
 {
 	GENERATED_BODY()
 
@@ -23,6 +24,11 @@ protected:
     virtual void BeginPlay() override;
 
     virtual void Tick(float DeltaTime) override;
+
+// 인터페이스 구현 --------------------------------------
+public:
+    virtual void RestAtCheckpoint_Implementation(float HealPercentage) override;
+
 
 // 컴포넌트 생성 --------------------------------------
 protected:
@@ -317,7 +323,7 @@ public:
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Player_Movement")
     bool GetIsOnWall() { return bIsOnWall; }
 
-    // 플레이어 회복약(Potion) 관련 함수/변수 --------------------------------------
+// 플레이어 회복 및 부활 관련 함수/변수 --------------------------------------
 protected:
     // 회복약 최대 사용 횟수
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player_Potion")
@@ -325,15 +331,19 @@ protected:
 
     // 현재 회복약 횟수
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Player_Potion")
-    int32 CurrentPotionCount = 3;
+    int32 CurrentPotionCount;
 
-    // 회복약 사용 시 회복량 (0.0 ~ 1.0, 1.0 = 최대 체력의 100%)
+    // 회복약 사용 시 회복량
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player_Potion")
-    float PotionHealAmount = 0.5f;
+    float PotionHealAmount = 2.0f;
 
     // 회복약 사용 함수 (내부 키 입력 바인딩용)
     UFUNCTION(BlueprintCallable, Category = "Player_Potion")
     void UsePotion();
+
+    // 플레이어 부활 위치
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_Reseurrect")
+    FVector CurrentRespawnLocation = FVector::Zero();
 
 public:
     // 회복약 횟수 초기화 (외부 체크포인트 액터에서 접근하여 호출해야 하므로 public)

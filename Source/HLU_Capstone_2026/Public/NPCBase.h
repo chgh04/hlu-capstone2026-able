@@ -36,7 +36,7 @@ public:
 
     // NPC 대화 내용 - 배열로 여러 줄 대화 가능
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
-    TArray<FString> DialogueLines;
+    TArray<FText> DialogueLines;
 
     // 현재 대화 인덱스
     UPROPERTY(BlueprintReadOnly, Category = "NPC")
@@ -65,7 +65,7 @@ public:
 protected:
     // 자식 BP에서 구현 - 대화 UI 표시
     UFUNCTION(BlueprintImplementableEvent, Category = "NPC")
-    void ShowDialogueUI(const FString& Line);
+    void ShowDialogueUI(const FText& Line);
 
     // 자식 BP에서 구현 - 대화 UI 닫기
     UFUNCTION(BlueprintImplementableEvent, Category = "NPC")

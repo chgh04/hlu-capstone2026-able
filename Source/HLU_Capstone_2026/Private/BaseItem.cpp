@@ -3,6 +3,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "PlayerBase.h"
 #include "GameplayTagsModule.h"
+#include "BlueprintGameplayTagLibrary.h"
 
 ABaseItem::ABaseItem()
 {
@@ -44,38 +45,43 @@ void ABaseItem::BeginPlay()
     }
 }
 
-void ABaseItem::OnPickupRangeBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
-    bool bFromSweep, const FHitResult& SweepResult)
-{
-    APlayerBase* Player = Cast<APlayerBase>(OtherActor);
-    if (!Player) return;
-
-    // 태그 체크와 관계없이 무조건 범위 진입 기록
-    // 태그 비교가 실패해도 bPlayerInRange가 false로 남는 버그 방지
-    bPlayerInRange = true;
-
-    // Auto 태그: 범위 진입 즉시 습득
-    FGameplayTag AutoTag = FGameplayTag::RequestGameplayTag(FName("Item.Pickup.Auto"));
-    if (PickupTag == AutoTag)
+void ABaseItem::OnPickupRangeBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{   
+    // OtherActor 태그 가져오기
+    IGameplayTagAssetInterface* TagInterface = Cast<IGameplayTagAssetInterface>(OtherActor);
+    
+    // Tag가 플레이어를 가르킬때만 실행
+    if (TagInterface && TagInterface->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("Entity.Team.Player"))))
     {
-        ExecutePickup(Player);
-        return;
-    }
+        // 태그 체크와 관계없이 무조건 범위 진입 기록
+        // 태그 비교가 실패해도 bPlayerInRange가 false로 남는 버그 방지
+        bPlayerInRange = true;
 
-    // Input 태그: F키 프롬프트만 표시하고 대기
-    // bPlayerInRange가 true이므로 F키 입력 시 TryPickupByInput에서 처리
-    ShowPickupHint();
+        // Auto 태그: 범위 진입 즉시 습득
+        FGameplayTag AutoTag = FGameplayTag::RequestGameplayTag(FName("Item.Pickup.Auto"));
+        if (PickupTag == AutoTag)
+        {
+            ExecutePickup(OtherActor);
+            return;
+        }
+
+        // Input 태그: F키 프롬프트만 표시하고 대기
+        // bPlayerInRange가 true이므로 F키 입력 시 TryPickupByInput에서 처리
+        ShowPickupHint();
+    }
 }
 
-void ABaseItem::OnPickupRangeEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-    APlayerBase* Player = Cast<APlayerBase>(OtherActor);
-    if (!Player) return;
+void ABaseItem::OnPickupRangeEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{   
+    // OtherActor 태그 가져오기
+    IGameplayTagAssetInterface* TagInterface = Cast<IGameplayTagAssetInterface>(OtherActor);
 
-    bPlayerInRange = false;
-    HidePickupHint();
+    // Tag가 플레이어를 가르킬때만 실행
+    if (TagInterface && TagInterface->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("Entity.Team.Player"))))
+    {
+        bPlayerInRange = false;
+        HidePickupHint();
+    }
 }
 
 void ABaseItem::TryPickupByInput(AActor* Picker)
@@ -92,9 +98,7 @@ void ABaseItem::ExecutePickup(AActor* Picker)
     if (bIsPickedUp) return;
     bIsPickedUp = true;
 
-    UE_LOG(LogTemp, Warning, TEXT("Item: [%s] picked up! Type: %s"),
-        *ItemData.ItemName,
-        *UEnum::GetValueAsString(ItemData.ItemType));
+    UE_LOG(LogTemp, Warning, TEXT("Item: [%s] picked up! Type: %s"), *ItemData.ItemName, *UEnum::GetValueAsString(ItemData.ItemType));
 
     // UI 델리게이트 브로드캐스트 - 인벤토리 완성 후 여기에 바인딩
     OnItemPickedUp.Broadcast(ItemData);

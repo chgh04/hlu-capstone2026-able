@@ -73,6 +73,21 @@ void APlayerBase::Tick(float DeltaTime)
     }
 }
 
+void APlayerBase::RestAtCheckpoint_Implementation(float HealPercentage)
+{   
+    // 체력 회복
+    if (HealthComponent)
+    {
+        float HealAmount = HealthComponent->GetMaxHealth() * HealPercentage;
+        HealthComponent->HealHealth(HealAmount);
+    }
+
+    // 포션 재공급
+    CurrentPotionCount = MaxPotionCount;
+
+    UE_LOG(LogTemp, Warning, TEXT("Player: Rested at Checkpoint!"));
+}
+
 void APlayerBase::TryAttack()
 {   
     // 부모클래스 TryAttack을 실행하지 않고 완전히 재정의
@@ -977,22 +992,23 @@ float APlayerBase::FilterInputWhileOnWall(float MovementVectorX)
 }
 void APlayerBase::UsePotion()
 {
-    // 1. 포션이 없으면 사용 취소
-    if (CurrentPotionCount <= 0) return;
+    // 포션이 없으면 사용 취소
+    if (CurrentPotionCount <= 0)
+    {
+        return;
+    }
 
-    // 2. 체력 컴포넌트 가져오기
-    UHealthComponent* HealthComp = FindComponentByClass<UHealthComponent>();
-    if (!HealthComp) return;
+    if (HealthComponent)
+    {
+        // 최대 체력 비례 회복량 계산 후 체력 회복
+        HealthComponent->HealHealth(PotionHealAmount);
 
-    // 3. 최대 체력 비례 회복량 계산 후 체력 회복
-    float HealAmount = HealthComp->GetMaxHealth() * PotionHealAmount;
-    HealthComp->HealHealth(HealAmount);
+        // 포션 사용 횟수 차감
+        CurrentPotionCount--;
 
-    // 4. 포션 사용 횟수 차감
-    CurrentPotionCount--;
-
-    UE_LOG(LogTemp, Warning, TEXT("Player: Potion used, remaining: %d / %d"),
-        CurrentPotionCount, MaxPotionCount);
+        UE_LOG(LogTemp, Warning, TEXT("Player: Potion used, remaining: %d / %d"),
+            CurrentPotionCount, MaxPotionCount);
+    }
 }
 
 void APlayerBase::RefillPotion()

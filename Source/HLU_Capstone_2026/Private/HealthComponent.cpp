@@ -49,7 +49,10 @@ void UHealthComponent::ReduceHealth(const float DamageAmount)
 void UHealthComponent::HealHealth(float Amount)
 {
     // 이미 사망했거나 데미지가 0 이하인 경우
-    if (bIsDead || Amount <= 0.f) return;
+    if (bIsDead || Amount <= 0.f)
+    {
+        return;
+    }
 
     // 체력 회복, 최대최력 이상으로 회복되지 않음
     CurrentHealth = FMath::Clamp(CurrentHealth + Amount, 0.f, MaxHealth);

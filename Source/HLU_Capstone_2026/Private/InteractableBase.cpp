@@ -1,7 +1,7 @@
 #include "InteractableBase.h"
 #include "Components/SphereComponent.h"
 #include "PaperSpriteComponent.h"
-#include "PlayerBase.h"
+#include "BlueprintGameplayTagLibrary.h"
 
 AInteractableBase::AInteractableBase()
 {
@@ -36,25 +36,30 @@ void AInteractableBase::BeginPlay()
     }
 }
 
-void AInteractableBase::OnInteractRangeBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
-    bool bFromSweep, const FHitResult& SweepResult)
-{
-    APlayerBase* Player = Cast<APlayerBase>(OtherActor);
-    if (!Player) return;
+void AInteractableBase::OnInteractRangeBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{   
+    // 태그로 플레이어 확인
+    IGameplayTagAssetInterface* TagInterface = Cast<IGameplayTagAssetInterface>(OtherActor);
 
-    bPlayerInRange = true;
-    ShowInteractHint();
+    // Tag가 플레이어를 가르킬때만 실행
+    if (TagInterface && TagInterface->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("Entity.Team.Player"))))
+    {
+        bPlayerInRange = true;
+        ShowInteractHint();
+    }
 }
 
-void AInteractableBase::OnInteractRangeEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void AInteractableBase::OnInteractRangeEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-    APlayerBase* Player = Cast<APlayerBase>(OtherActor);
-    if (!Player) return;
+    // 태그로 플레이어 확인
+    IGameplayTagAssetInterface* TagInterface = Cast<IGameplayTagAssetInterface>(OtherActor);
 
-    bPlayerInRange = false;
-    HideInteractHint();
+    // Tag가 플레이어를 가르킬때만 실행
+    if (TagInterface && TagInterface->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("Entity.Team.Player"))))
+    {
+        bPlayerInRange = false;
+        ShowInteractHint();
+    }
 }
 
 void AInteractableBase::TryInteract(AActor* Interactor)

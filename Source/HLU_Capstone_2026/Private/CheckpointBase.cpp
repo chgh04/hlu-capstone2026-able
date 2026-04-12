@@ -1,5 +1,4 @@
 #include "CheckpointBase.h"
-#include "PlayerBase.h"
 #include "HealthComponent.h"
 
 ACheckpointBase::ACheckpointBase()
@@ -22,9 +21,11 @@ void ACheckpointBase::OnInteract_Implementation(AActor* Interactor)
         ActivateCheckpoint(Interactor);
     }
 
-    // 매 상호작용마다 체력 회복 + 포션 재공급
-    HealPlayer(Interactor);
-    RefillPotion(Interactor);
+    if (Interactor->Implements<UCheckpointInteractable>())
+    {
+        // 인터페이스 함수 호출
+        ICheckpointInteractable::Execute_RestAtCheckpoint(Interactor, HealPercent);
+    }
 }
 
 void ACheckpointBase::ActivateCheckpoint(AActor* Interactor)
@@ -41,33 +42,4 @@ void ACheckpointBase::ActivateCheckpoint(AActor* Interactor)
     }
 
     UE_LOG(LogTemp, Warning, TEXT("Checkpoint: Activated!"));
-}
-
-void ACheckpointBase::HealPlayer(AActor* Interactor)
-{
-    APlayerBase* Player = Cast<APlayerBase>(Interactor);
-    if (!Player) return;
-
-    // HealthComponent 가져오기
-    UHealthComponent* HealthComp = Player->FindComponentByClass<UHealthComponent>();
-    if (!HealthComp) return;
-
-    // HealPercent만큼 회복
-    // 예: HealPercent = 1.0이면 최대 체력만큼 회복
-    float HealAmount = HealthComp->GetMaxHealth() * HealPercent;
-    HealthComp->HealHealth(HealAmount);
-
-    PlayHealEffect();
-
-    UE_LOG(LogTemp, Warning, TEXT("Checkpoint: Player healed by %.1f%%"), HealPercent * 100.f);
-}
-
-void ACheckpointBase::RefillPotion(AActor* Interactor)
-{
-    // 상호작용한 액터가 플레이어인지 캐스팅하여 확인
-    APlayerBase* Player = Cast<APlayerBase>(Interactor);
-    if (!Player) return;
-
-    // 플레이어의 포션 충전 함수 호출
-    Player->RefillPotion();
 }
