@@ -242,6 +242,9 @@ protected:
     // 앉기(슬라이딩) 종료 시 호출되는 엔진 내장 함수
     virtual void OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
 
+    // Crouch 후 크기 감소/복구 변수
+    float FixHeightAdjust = 0.f;
+
     // 도약 및 낙하시 중력 계수 동적 변경 함수
     void ChangeGravity();
 
@@ -355,8 +358,19 @@ protected:
     // 플레이어 벽 점프 이후 입력 잠금 타이머 관리자
     FTimerHandle WallJumpLockoutTimerHandle;
 
-// VFX 및 오디오 에셋
+// VFX 및 오디오
 protected:
-    UPROPERTY(EditDefaultsOnly, Category = "VFX")
-    class UNiagaraSystem* GuardEffect;
+    // 회피 잔상 스폰 함수
+    void SpawnGhostTrail();
+
+    // 잔상 액터
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "VFX")
+    TSubclassOf<class AGhostActor> GhostActorClass;
+
+    // 잔상 스폰 간격
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "VFX")
+    float GhostSpawnDistnaceThreshold = 100.0f;
+
+    // 마지막으로 잔상을 소환한 장소
+    FVector LastGhostSpawnLocation = FVector::Zero();
 };

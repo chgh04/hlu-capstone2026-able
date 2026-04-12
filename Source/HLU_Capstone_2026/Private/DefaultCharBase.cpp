@@ -5,6 +5,9 @@
 #include "Engine/DamageEvents.h"
 #include "CustomDamageType.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "PaperFlipbookComponent.h" 
+#include "Materials/MaterialInstanceDynamic.h"
+#include "NiagaraFunctionLibrary.h"
 
 ADefaultCharBase::ADefaultCharBase()
 {
@@ -37,10 +40,21 @@ void ADefaultCharBase::BeginPlay()
     // MovementComponent 할당
     MovementComp = GetCharacterMovement();
 
+    // 플립북 컴포넌트 할당
+    FlipbookComp = GetSprite();
+
     // 기존 바닥 마찰력 저장
     if (MovementComp)
     {
         SavedGroundFriction = MovementComp->GroundFriction;
+    }
+
+    // 캐릭터가 가진 플립북 컴포넌트를 가져옴
+    UPaperFlipbookComponent* PaperSpriteComp = GetSprite();
+    if (PaperSpriteComp)
+    {
+        // 0번 슬롯의 머티리얼을 기반으로 다이내믹 머티리얼 인스턴스 생성
+        DynamicSpriteMat = PaperSpriteComp->CreateDynamicMaterialInstance(0);
     }
 }
 
@@ -317,6 +331,27 @@ bool ADefaultCharBase::GetHit(const FDamageData& DamageData)
                 // 가드 성공 신호
                 bIsGuardSuccess = true;
 
+                // 가드 성공 이펙트 실행
+                if (GuardEffect)
+                {
+                    // 이펙트가 향할 방향은 피격받은 캐릭터로부터 피격당한 방향
+                    FVector GuardEffectDirection = DamageData.HitDirection * -1.0f;
+                    FRotator GuardEffectRotation = GuardEffectDirection.Rotation();
+
+                    // 나이아가라 이펙트가 스폰 될 위치(해당 캐릭터의 위치)
+                    FVector GuardEffectSpawnLocation = GetActorLocation();
+                    GuardEffectSpawnLocation.Y += 50.0f;
+                    GuardEffectSpawnLocation.Z += 30.0f;
+
+                    // 이펙트 스폰
+                    UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+                        GetWorld(),
+                        GuardEffect,
+                        GuardEffectSpawnLocation,
+                        GuardEffectRotation
+                    );
+                }
+
                 // 가드넉백만큼의 넉백 적용
                 if (MovementComp)
                 {
@@ -349,6 +384,26 @@ bool ADefaultCharBase::GetHit(const FDamageData& DamageData)
 
     // 피격 상태 진입
     UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Get Hit!"));
+
+    // 나이아가라 피격 이펙트 스폰
+    if (HitEffect)
+    {   
+        // 이펙트가 향할 방향은 피격받은 캐릭터로부터 피격당한 방향
+        FVector HitEffectDirection = DamageData.HitDirection * -1.0f;
+        FRotator HitEffectRotation = HitEffectDirection.Rotation();
+
+        // 나이아가라 이펙트가 스폰 될 위치(해당 캐릭터의 위치)
+        FVector HitEffectSpawnLocation = GetActorLocation();
+        HitEffectSpawnLocation.Y += 50.0f;
+
+        // 이펙트 스폰
+        UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+            GetWorld(),
+            HitEffect,
+            HitEffectSpawnLocation,
+            HitEffectRotation
+        );
+    }
 
     // 넉백에 면역이 아닌 경우에
     if (!bIsKnockBackImmune)

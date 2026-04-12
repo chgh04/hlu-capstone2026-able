@@ -6,6 +6,8 @@
 #include "BlueprintGameplayTagLibrary.h"
 #include "PlayerBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "PaperFlipbookComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 AEnemyBase::AEnemyBase()
 {
@@ -104,7 +106,29 @@ void AEnemyBase::TryAttack()
         return;
     }
 
-    Attack();
+    if (!TargetPlayer)
+    {
+        return;
+    }
+
+    // 캐릭터의 정면과 캐릭터로부터 적의 방향
+    FVector DirectionToTarget = (TargetPlayer->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+    FVector ForwardVector = GetActorForwardVector();
+    // 두 벡터의 내적을 통한 각도 계산, 1이면 정면, -1이면 뒤
+    float DotResult = FVector::DotProduct(ForwardVector, DirectionToTarget);
+
+    if (DotResult >= 0.0f)
+    {   
+        // 정면에 있다면 그냥 공격
+        Attack();   
+    }
+    else
+    {   
+        // 뒤에 있으면 뒤돌아보고 공격
+        DirectionToTarget.Z = 0.0f;
+        SetActorRotation(DirectionToTarget.Rotation());
+        Attack();
+    } 
 }
 
 void AEnemyBase::Attack_Implementation()
@@ -160,7 +184,13 @@ void AEnemyBase::StepForward()
     DashVelocity.Z = MovementComp->Velocity.Z;
     MovementComp->Velocity = DashVelocity;
 
-    UE_LOG(LogTemp, Warning, TEXT("AI: Change GroundFriction to 0 and Dash Start!, Velocity = %.2f"), DashVelocity.X);
+    //UE_LOG(LogTemp, Warning, TEXT("AI: Change GroundFriction to 0 and Dash Start!, Velocity = %.2f"), DashVelocity.X);
+}
+
+void AEnemyBase::ResetAttackCooldown()
+{
+    bCanAttack = true;
+    UE_LOG(LogTemp, Warning, TEXT("Enemy Attack Cooldown Ready!"));
 }
 
 bool AEnemyBase::GetHit(const FDamageData& DamageData)
@@ -181,9 +211,26 @@ bool AEnemyBase::GetHit(const FDamageData& DamageData)
     bIsAttacking = true;
     EndAttackState();
 
+    UPaperFlipbookComponent* MySprite = GetSprite();
+    if (MySprite && HitMaterial)
+    {
+        // 되돌리기 위해 원래 머티리얼을 저장
+        if (OriginalMaterial == nullptr)
+        {
+            OriginalMaterial = MySprite->GetMaterial(0);
+        }
+
+        // 0번 슬롯의 머티리얼을 덮어씌우기
+        MySprite->SetMaterial(0, HitMaterial);
+    }
+
     // 타이머 설정 및 타이머 이후 호출 함수 지정(ResetHitStateOnSimpleFSM) - Hit 상태 해제 타이머
     GetWorldTimerManager().ClearTimer(HitStunTimerHandle);
     GetWorldTimerManager().SetTimer(HitStunTimerHandle, this, &AEnemyBase::ResetHitStateOnSimpleFSM, StunDuration, false);
+    
+    // 메테리얼 변경 타이머 호출
+    GetWorldTimerManager().ClearTimer(HitFlashResetTimerHandle);
+    GetWorldTimerManager().SetTimer(HitFlashResetTimerHandle, this, &AEnemyBase::ResetHitFlash, 0.1f, false);
 
     return true;
 }
@@ -242,8 +289,23 @@ void AEnemyBase::ChaseOnSimpleFSM()
     }
     else
     {   
-        // 사거리보다 가깝다면 공격 상태로 이동
-        CurrentState = EEnemyState::Attack;
+        if (bCanAttack)
+        {
+            // 사거리보다 가깝다면 공격 상태로 이동
+            CurrentState = EEnemyState::Attack;
+        }
+        else
+        {   
+            // 플레이어를 처다봄
+            FVector LookDirection = TargetPlayer->GetActorLocation() - GetActorLocation();
+            LookDirection.Z = 0.0f;
+
+            if (!LookDirection.IsNearlyZero())
+            {
+                SetActorRotation(LookDirection.Rotation());
+            }
+        }
+        
     }
 }
 
@@ -254,6 +316,18 @@ void AEnemyBase::CallAttackEndOnSimpleFSM()
     CurrentState = EEnemyState::Chase;
     bIsAttacking = false;
     EndAttackState();
+
+    // 쿨타임 돌임
+    bCanAttack = false;
+
+    // 랜덤 쿨타임 적용
+    float RandomCooldown = FMath::RandRange(MinAttackCooldown, MaxAttackCooldown);
+
+    // 타이머 적용하여 쿨타임 리셋시키기
+    GetWorldTimerManager().ClearTimer(AttackCooldownTimerHandle);
+    GetWorldTimerManager().SetTimer(AttackCooldownTimerHandle, this, &AEnemyBase::ResetAttackCooldown, RandomCooldown, false);
+
+    UE_LOG(LogTemp, Warning, TEXT("Enemy Attack Finished! Attck Cooldown: %.2f"), RandomCooldown);
 }
 
 void AEnemyBase::ResetHitStateOnSimpleFSM()
@@ -279,4 +353,14 @@ bool AEnemyBase::IsCharacterCanAction()
     bIsCanAct = bIsCanAct || !bIsHit;
 
     return bIsCanAct;
+}
+
+void AEnemyBase::ResetHitFlash()
+{
+    UPaperFlipbookComponent* MySprite = GetSprite();
+    if (MySprite && OriginalMaterial)
+    {
+        // 다시 원래 머티리얼로 되돌리기
+        MySprite->SetMaterial(0, OriginalMaterial);
+    }
 }

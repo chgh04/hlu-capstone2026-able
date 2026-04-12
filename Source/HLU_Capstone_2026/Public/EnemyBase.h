@@ -64,13 +64,24 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
     float EnemyAttackStepForce = 200.f;
 
+    // 공격 쿨타임 관련 변수
+    UPROPERTY(EditDefaultsOnly, Category = "Combat")
+    float MinAttackCooldown = 1.0f;
+
+    // 공격 쿨타임 관련 변수
+    UPROPERTY(EditDefaultsOnly, Category = "Combat")
+    float MaxAttackCooldown = 2.0f;
+
+    // 공격 쿨타임이 돌아 공격 가능한 상태인지 구분 플래그
+    bool bCanAttack = true;
+
+    // 쿨타임 초기화 함수
+    void ResetAttackCooldown();
     
 public:
     // 캐릭터의 공격 시 전진성 변경 함수
     UFUNCTION(BlueprintCallable, Category = "Combat")
     void SetEnemyAttackStepForce(float Value) { EnemyAttackStepForce = Value; }
-
-
 
 // Enemy 피격 기능 함수/변수 -------------------
 protected:
@@ -122,5 +133,25 @@ private:
 protected:
     virtual bool IsCharacterCanAction() override;
 
+    // 피격시 Hit 상태 타이머 관리자 
     FTimerHandle HitStunTimerHandle;
+
+    // 공격 쿨타임 타이머 관리자
+    FTimerHandle AttackCooldownTimerHandle;
+
+    // 피격시 메테리얼 초기화 타이머 관리자
+    FTimerHandle HitFlashResetTimerHandle;
+
+// VFX/오디오 
+protected:
+    // 피격 후 번쩍이는 효과 초기화
+    void ResetHitFlash();
+
+    // 블루프린트에서 M_EnemyHit 머티리얼을 할당할 변수
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Hit Effect")
+    class UMaterialInterface* HitMaterial;
+
+    // 원래 가지고 있던 머티리얼을 기억해둘 변수
+    UPROPERTY()
+    class UMaterialInterface* OriginalMaterial;
 };

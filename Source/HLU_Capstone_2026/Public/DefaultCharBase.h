@@ -56,6 +56,9 @@ protected:
 	// 캐릭터 MovementComponent
 	class UCharacterMovementComponent* MovementComp = nullptr;
 
+	// 캐릭터 페이퍼 플릭북 컴포넌트
+	class UPaperFlipbookComponent* FlipbookComp = nullptr;
+
 // 공격 기능 함수/변수 -------------------
 protected:
 	// 공격이 시작될 때, 공격이 가능한지 확인하는 함수, 호출될 때 공격이 가능하면 공격, 아닐경우 공격하지 않습니다. 자식 클래스에서 재정의 가능
@@ -287,4 +290,19 @@ protected:
 	// 캐릭터가 행동 가능한 상태라면 true, 아니라면 false 반환합니다. 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Status")
 	virtual bool IsCharacterCanAction();
+
+// VFX 및 오디오
+protected:
+	// 다이나믹 머티리얼 인스턴스를 저장하는 변수
+	UPROPERTY()
+	class UMaterialInstanceDynamic* DynamicSpriteMat;
+
+	// 피격시 발생하는 나이아가라 시스템 할당 변수
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "VFX")
+	class UNiagaraSystem* HitEffect = nullptr;
+
+	// 가드시 발생하는 나이아가라 시스템 할당 변수
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "VFX")
+	class UNiagaraSystem* GuardEffect = nullptr;
+
 };

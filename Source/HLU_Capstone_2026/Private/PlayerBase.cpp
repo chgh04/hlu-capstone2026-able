@@ -7,6 +7,9 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "PaperFlipbookComponent.h"
+#include "PaperFlipbook.h"
+#include "PaperSprite.h"
+#include "GhostActor.h"
 
 APlayerBase::APlayerBase()
 {
@@ -40,6 +43,7 @@ void APlayerBase::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
+    // Movement 관련 Tick 검사
     if (MovementComp)
     {   
         ChangeGravity();
@@ -50,13 +54,30 @@ void APlayerBase::Tick(float DeltaTime)
             CheckWall();
         }
     }
+
+    // 회피효과 관련 Tick 검사
+    if (bIsDodging && LastGhostSpawnLocation != FVector::Zero())
+    {   
+        FVector CurrentLocation = GetActorLocation();
+
+        // 루트 연산 제거
+        float DistSquared = FVector::DistSquared(CurrentLocation, LastGhostSpawnLocation);
+        float ThreadHoldSquared = GhostSpawnDistnaceThreshold * GhostSpawnDistnaceThreshold;
+
+        // 이동 거리가 기준치를 넘었을 때 스폰
+        if (DistSquared >= ThreadHoldSquared)
+        {
+            SpawnGhostTrail();
+            LastGhostSpawnLocation = CurrentLocation; // 마지막 스폰 위치 갱신
+        }
+    }
 }
 
 void APlayerBase::TryAttack()
 {   
     // 부모클래스 TryAttack을 실행하지 않고 완전히 재정의
     // 1. 상태검사, 사망 / 넉백 / 피해무적상태(추후 추가 가능) 등등이라면 공격 불가
-    if (!IsCharacterCanAction())
+    if (!IsCharacterCanAction() || bIsOnWall)
     {
         //UE_LOG(LogTemp, Warning, TEXT("C++ Player Attack Return: Other Reason"));
         return;
@@ -285,6 +306,12 @@ bool APlayerBase::GetHit(const FDamageData& DamageData)
     bIsKnockBack = true;
     bIsInvincible = true;
 
+    // 무적 시작 시 머티리얼의 무적 스위치 작동 (점멸 시작)
+    if (DynamicSpriteMat)
+    {
+        DynamicSpriteMat->SetScalarParameterValue(FName("IsInvincible"), 1.0f);
+    }
+
     // 모든 공격 플래그 강제 리셋
     EndAttackState();   // 공격 상태 false로 전환 및 연계 가능 구간 플래그 초기화
     bSaveAttack = false;    // 선입력된 공격 중단
@@ -300,6 +327,10 @@ bool APlayerBase::GetHit(const FDamageData& DamageData)
             bIsInvincible = false;
             bIsKnockBack = false;
 
+            if (DynamicSpriteMat)
+            {
+                DynamicSpriteMat->SetScalarParameterValue(FName("IsInvincible"), 0.0f);
+            }
             //UE_LOG(LogTemp, Warning, TEXT("C++: Hit Stun & Invincible Ended"));
         }), HitInvincibleTime, false);
 
@@ -592,6 +623,8 @@ void APlayerBase::DodgeStart(float Time)
 
     // 회피 중 입력 제한
     bIsMoveLockedWhileDodging = true;
+
+    LastGhostSpawnLocation = GetActorLocation();
 }
 
 void APlayerBase::DodgeEnd()
@@ -733,7 +766,7 @@ void APlayerBase::OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAd
     Super::OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
 
     // 카메라 및 스프라이트 위치보정값
-    float FixHeightAdjust = HalfHeightAdjust * 0.95;
+    FixHeightAdjust = HalfHeightAdjust * 0.95;
 
     // 캐릭터 스프라이트 위치 보정
     if (UPaperFlipbookComponent* VisualComp = GetSprite())
@@ -756,7 +789,7 @@ void APlayerBase::OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdju
     Super::OnEndCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
 
     // 카메라 및 스프라이트 위치보정값
-    float FixHeightAdjust = HalfHeightAdjust * 0.95 * -1;
+    FixHeightAdjust = FixHeightAdjust * -1;
 
     if (UPaperFlipbookComponent* VisualComp = GetSprite())
     {
@@ -975,4 +1008,47 @@ bool APlayerBase::IsCharacterCanAction()
     bool bIsCanAct = Super::IsCharacterCanAction();
 
     return bIsCanAct;
+}
+
+void APlayerBase::SpawnGhostTrail()
+{   
+    if (!GhostActorClass)
+    {
+        return;
+    }
+
+    if (FlipbookComp && FlipbookComp->GetFlipbook())
+    {
+        // 재생중인 플립북 시간 가져오기
+        float CurrentTime = FlipbookComp->GetPlaybackPosition();
+    
+        // 해당 시간에 해당하는 플렙북 프레임 인덱스 검색
+        int32 FramIndex = FlipbookComp->GetFlipbook()->GetKeyFrameIndexAtTime(CurrentTime);
+
+        // 해당 프레임의 스프라이트 가져오기
+        UPaperSprite* CurrentSprtie = FlipbookComp->GetFlipbook()->GetSpriteAtFrame(FramIndex);
+
+        if (CurrentSprtie)
+        {   
+            // 월드에 잔상 액터 스폰 (스폰 파라미터를 이용해 충돌 문제 방지)
+            FActorSpawnParameters SpawnParams;
+            SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+            FVector GhostSpawnLocation = GetActorLocation();
+            GhostSpawnLocation.Z -= 48.0f;
+
+            AGhostActor* Ghost = GetWorld()->SpawnActor<AGhostActor>(
+                GhostActorClass,
+                GhostSpawnLocation,
+                GetActorRotation(),
+                SpawnParams
+            );
+
+            if (Ghost)
+            {
+                // GhostActor에게 텍스처와 스케일(좌우 반전 상태) 넘겨주기
+                Ghost->InitGhost(CurrentSprtie, GetActorScale3D());
+            }
+        }
+    }
 }
