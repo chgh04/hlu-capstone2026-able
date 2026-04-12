@@ -63,6 +63,10 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
     float AttackStepForce = 500.f;
 
+    // AttackStepForce 반환 함수
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Combat")
+    float GetAttackStepForce() { return AttackStepForce; }
+
     // 달리는 도중 공격 시 전진거리 배율
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
     float AttackStepForceMultiplierWhileRun = 2.0f;

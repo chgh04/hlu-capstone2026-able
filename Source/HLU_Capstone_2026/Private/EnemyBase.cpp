@@ -70,7 +70,7 @@ void AEnemyBase::Tick(float DeltaTime)
         //UE_LOG(LogTemp, Warning, TEXT("AI: Attack"));
         // 이동 멈춤 및 공격 실행
         TryAttack();
-        // 공격이 끝나면 다시 거리를 재고 Chase로 돌아가는 로직은 각 캐릭터 BP에서 공격 애니메이션과 함께 구현 필요
+
         break;
 
     case EEnemyState::Hit:
@@ -94,6 +94,8 @@ void AEnemyBase::OnDeath_Implementation()
     Super::OnDeath_Implementation();
 
     CurrentState = EEnemyState::Dead;
+    
+    PlayDeathAnimation();
 
     PrimaryActorTick.bCanEverTick = false;
 }
@@ -175,8 +177,6 @@ void AEnemyBase::StepForward()
 
     // 지면마찰력을 0으로 변경
     MovementComp->GroundFriction = 0.0f;
-    
-
 
     // 속도 적용
     FVector ForwardDir = GetActorForwardVector();   // 캐릭터 전방 벡터 구하기
@@ -201,15 +201,23 @@ bool AEnemyBase::GetHit(const FDamageData& DamageData)
         return false;
     }
 
-    // 현재 상태를 Hit으로 변겅
-    CurrentState = EEnemyState::Hit;
+    // 넉백 면역이 아니라면 공격 초기화 및 Hit 상태로 만듬
+    if (!bIsKnockBackImmune)
+    {   
+        // 현재 상태를 Hit으로 변겅
+        CurrentState = EEnemyState::Hit;
 
-    // 현재 캐릭터의 물리적 속도를 제거 (이건 선택사항)
-    GetCharacterMovement()->StopMovementImmediately();
+        // 현재 캐릭터의 물리적 속도를 제거 (이건 선택사항)
+        GetCharacterMovement()->StopMovementImmediately();
 
-    // Hit 플래그 활성화 및 공격 로직 초기화 (지면마찰력 초기화)
-    bIsAttacking = true;
-    EndAttackState();
+        // Hit 플래그 활성화 및 공격 로직 초기화 (지면마찰력 초기화)
+        bIsHit = true;
+        EndAttackState();
+
+        // 타이머 설정 및 타이머 이후 호출 함수 지정(ResetHitStateOnSimpleFSM) - Hit 상태 해제 타이머
+        GetWorldTimerManager().ClearTimer(HitStunTimerHandle);
+        GetWorldTimerManager().SetTimer(HitStunTimerHandle, this, &AEnemyBase::ResetHitStateOnSimpleFSM, StunDuration, false);
+    }
 
     UPaperFlipbookComponent* MySprite = GetSprite();
     if (MySprite && HitMaterial)
@@ -224,10 +232,6 @@ bool AEnemyBase::GetHit(const FDamageData& DamageData)
         MySprite->SetMaterial(0, HitMaterial);
     }
 
-    // 타이머 설정 및 타이머 이후 호출 함수 지정(ResetHitStateOnSimpleFSM) - Hit 상태 해제 타이머
-    GetWorldTimerManager().ClearTimer(HitStunTimerHandle);
-    GetWorldTimerManager().SetTimer(HitStunTimerHandle, this, &AEnemyBase::ResetHitStateOnSimpleFSM, StunDuration, false);
-    
     // 메테리얼 변경 타이머 호출
     GetWorldTimerManager().ClearTimer(HitFlashResetTimerHandle);
     GetWorldTimerManager().SetTimer(HitFlashResetTimerHandle, this, &AEnemyBase::ResetHitFlash, 0.1f, false);

@@ -148,6 +148,7 @@ protected:
 	bool bIsKnockBack = false;
 
 	// 캐릭터가 넉백에 면역인지 아닌지 판단
+	UPROPERTY(EditAnywhere, Category = "Combat")
 	bool bIsKnockBackImmune = false;
 
 	// 캐릭터의 넉백 강도
@@ -161,6 +162,10 @@ protected:
 	// 캐릭터 사망상태 플래그
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Status")
 	bool bIsDead = false;
+
+	// 캐릭터 사망 플래그 반환 함수
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Status")
+	bool GetIsDead() { return bIsDead; }
 
 	// 캐릭터 사망 애니메이션 재생
 	UFUNCTION(BlueprintImplementableEvent, Category = "Status")
