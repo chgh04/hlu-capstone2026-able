@@ -314,6 +314,29 @@ public:
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Player_Movement")
     bool GetIsOnWall() { return bIsOnWall; }
 
+    // 플레이어 회복약(Potion) 관련 함수/변수 --------------------------------------
+protected:
+    // 회복약 최대 사용 횟수
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player_Potion")
+    int32 MaxPotionCount = 3;
+
+    // 현재 회복약 횟수
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Player_Potion")
+    int32 CurrentPotionCount = 3;
+
+    // 회복약 사용 시 회복량 (0.0 ~ 1.0, 1.0 = 최대 체력의 100%)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player_Potion")
+    float PotionHealAmount = 0.5f;
+
+    // 회복약 사용 함수 (내부 키 입력 바인딩용)
+    UFUNCTION(BlueprintCallable, Category = "Player_Potion")
+    void UsePotion();
+
+public:
+    // 회복약 횟수 초기화 (외부 체크포인트 액터에서 접근하여 호출해야 하므로 public)
+    UFUNCTION(BlueprintCallable, Category = "Player_Potion")
+    void RefillPotion();
+
 // 기타 추가 기능 --------------------------------------
 protected:
     // 플레이어가 이동/공격을 제한하는 이상상태에 있는지 판단하는 함수

@@ -64,7 +64,10 @@ void ACheckpointBase::HealPlayer(AActor* Interactor)
 
 void ACheckpointBase::RefillPotion(AActor* Interactor)
 {
-    // 포션 시스템은 추후 인벤토리 완성 후 연결
-    // 지금은 로그만 출력
-    UE_LOG(LogTemp, Warning, TEXT("Checkpoint: Potion refilled (%d)"), PotionRefillCount);
+    // 상호작용한 액터가 플레이어인지 캐스팅하여 확인
+    APlayerBase* Player = Cast<APlayerBase>(Interactor);
+    if (!Player) return;
+
+    // 플레이어의 포션 충전 함수 호출
+    Player->RefillPotion();
 }

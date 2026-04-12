@@ -38,3 +38,43 @@ struct FDamageData
     bool bIgnoreInvincible = false;
 
 };
+
+// 아이템 분류
+UENUM(BlueprintType)
+enum class EItemType : uint8
+{
+    None        UMETA(DisplayName = "None"),
+    Quest       UMETA(DisplayName = "Quest"),       // 퀘스트 아이템
+    Upgrade     UMETA(DisplayName = "Upgrade"),     // 강화 아이템
+    Relic       UMETA(DisplayName = "Relic"),       // 장신구(성유물)
+    Record      UMETA(DisplayName = "Record")       // 일지/기록
+};
+
+// 아이템 데이터 구조체
+// BaseItem BP의 디테일 패널에서 드롭다운으로 선택 가능
+// ItemCode는 세이브/로드 및 인벤토리에서 아이템을 식별하는 고유 키로 사용
+USTRUCT(BlueprintType)
+struct FPilgrimItemData
+{
+    GENERATED_BODY()
+
+    // 아이템 고유 코드 - 세이브/로드, 인벤토리 식별용 (예: "ITEM_SWORD_01")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FName ItemCode = NAME_None;
+
+    // 아이템 이름 - UI 표시용
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString ItemName = TEXT("Unknown Item");
+
+    // 아이템 설명 - 인벤토리 UI 표시용
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString ItemDescription = TEXT("");
+
+    // 아이템 분류 - 저장 위치 및 처리 방식 구분에 사용
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    EItemType ItemType = EItemType::None;
+
+    // 아이템 수량
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    int32 ItemAmount = 1;
+};

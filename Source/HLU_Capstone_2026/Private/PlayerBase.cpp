@@ -1,4 +1,5 @@
 #include "PlayerBase.h"
+#include "HealthComponent.h"
 #include "BlueprintGameplayTagLibrary.h"
 #include "GameplayTagContainer.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -940,6 +941,33 @@ float APlayerBase::FilterInputWhileOnWall(float MovementVectorX)
     }
 
     return MovementVectorX;
+}
+void APlayerBase::UsePotion()
+{
+    // 1. 포션이 없으면 사용 취소
+    if (CurrentPotionCount <= 0) return;
+
+    // 2. 체력 컴포넌트 가져오기
+    UHealthComponent* HealthComp = FindComponentByClass<UHealthComponent>();
+    if (!HealthComp) return;
+
+    // 3. 최대 체력 비례 회복량 계산 후 체력 회복
+    float HealAmount = HealthComp->GetMaxHealth() * PotionHealAmount;
+    HealthComp->HealHealth(HealAmount);
+
+    // 4. 포션 사용 횟수 차감
+    CurrentPotionCount--;
+
+    UE_LOG(LogTemp, Warning, TEXT("Player: Potion used, remaining: %d / %d"),
+        CurrentPotionCount, MaxPotionCount);
+}
+
+void APlayerBase::RefillPotion()
+{
+    // 포션 사용 횟수를 최대치로 충전
+    CurrentPotionCount = MaxPotionCount;
+
+    UE_LOG(LogTemp, Warning, TEXT("Player: Potion refilled to %d"), MaxPotionCount);
 }
 
 bool APlayerBase::IsCharacterCanAction()
