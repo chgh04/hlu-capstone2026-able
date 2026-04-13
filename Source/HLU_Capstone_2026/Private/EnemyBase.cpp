@@ -187,6 +187,40 @@ void AEnemyBase::StepForward()
     //UE_LOG(LogTemp, Warning, TEXT("AI: Change GroundFriction to 0 and Dash Start!, Velocity = %.2f"), DashVelocity.X);
 }
 
+//주로 공중몬스터가 사용하는 함수
+void AEnemyBase::StepFlyingForward(AActor* TargetActor)
+{
+    // 넉백중 등 이동 불가능 상태에선 무시
+    // TargetActor를 못 찾으면 무시
+    if (!IsCharacterCanAction() || !TargetActor)
+    {
+        return;
+    }
+
+    // 캐릭터 무브먼트 컴포넌트 없으면 리턴
+    if (!MovementComp)
+    {
+        return;
+    }
+
+    // 지면마찰력을 0으로 변경
+    MovementComp->GroundFriction = 0.0f;
+
+    //위치 가져오기
+    FVector StartLoc = GetActorLocation();
+    FVector TargetLoc = TargetActor->GetActorLocation();
+    TargetLoc.Z += 50.0f;
+
+    // 방향 벡터 구하기, 정규화
+    FVector Direction = TargetLoc - StartLoc;
+    Direction.Normalize();
+
+    // 속도 , 방향 적용
+    FVector DashVelocity = Direction * EnemyFlyingAttackStepForce;
+    MovementComp->Velocity = DashVelocity;
+
+    //UE_LOG(LogTemp, Warning, TEXT("AI: Change GroundFriction to 0 and Dash Start!, Velocity = %.2f"), DashVelocity.X);
+}
 void AEnemyBase::ResetAttackCooldown()
 {
     bCanAttack = true;

@@ -60,9 +60,17 @@ protected:
     UFUNCTION(BlueprintCallable, Category = "Combat")
     void StepForward();
 
+    // 노티파이에서 공중 몬스터가 호출할 전진 스텝 함수
+    UFUNCTION(BlueprintCallable, Category = "Combat")
+    void StepFlyingForward(AActor* TargetActor);
+
     // 캐릭터의 공격 시 전진성, 만약 패턴마다 다르게 하고싶다면 노티파이 등에서 변경 가능합니다. 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
     float EnemyAttackStepForce = 200.f;
+
+    // 공중 몬스터가 캐릭터 공격시 전진성, 노티파이에서 변경 가능합니다.
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+    float EnemyFlyingAttackStepForce = 200.f;
 
     // 공격 쿨타임 관련 변수
     UPROPERTY(EditDefaultsOnly, Category = "Combat")
