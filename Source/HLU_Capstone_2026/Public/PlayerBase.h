@@ -29,6 +29,9 @@ protected:
 
     virtual void Tick(float DeltaTime) override;
 
+    //댕글링 포인터 크래시 방지 - NearbyItems/NearbyInteractables 배열에 이미 삭제된 액터 포인터가 남아있어서 생기는 크래시
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 // 인터페이스 구현 --------------------------------------
 public:
     virtual void RestAtCheckpoint_Implementation(float HealPercentage) override;

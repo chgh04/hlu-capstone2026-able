@@ -1125,3 +1125,13 @@ void APlayerBase::RefillPotion()
 
     UE_LOG(LogTemp, Warning, TEXT("Player: Potion refilled to %d"), MaxPotionCount);
 }
+
+//댕글링 포인터 크래시 방지
+void APlayerBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    Super::EndPlay(EndPlayReason);
+
+    // 종료 시 배열 비우기 - 댕글링 포인터 방지
+    NearbyItems.Empty();
+    NearbyInteractables.Empty();
+}
