@@ -197,7 +197,8 @@ void AEnemyBase::StepForward()
     //UE_LOG(LogTemp, Warning, TEXT("AI: Change GroundFriction to 0 and Dash Start!, Velocity = %.2f"), DashVelocity.X);
 }
 
-//주로 공중몬스터가 사용하는 함수
+// 공중몬스터가 사용하는 함수
+// 공중 유닛 StepForward 
 void AEnemyBase::StepFlyingForward(AActor* TargetActor)
 {
     // 넉백중 등 이동 불가능 상태에선 무시
@@ -230,7 +231,7 @@ void AEnemyBase::StepFlyingForward(AActor* TargetActor)
     //UE_LOG(LogTemp, Warning, TEXT("AI: Change GroundFriction to 0 and Dash Start!, Velocity = %.2f"), DashVelocity.X);
 }
 
-//공중 유닛 상하 움직임 구현 , 노티파이에서 적용 가능합니다 
+//상하 움직임 구현 , 노티파이에서 적용 가능합니다 
 void AEnemyBase::IdleFlyingUp()
 {
     // 캐릭터 무브먼트 컴포넌트 없으면 리턴
