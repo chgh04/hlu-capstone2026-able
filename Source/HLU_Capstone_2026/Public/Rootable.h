@@ -39,4 +39,9 @@ public:
     // 아이템을 사용했을 때 호출
     UFUNCTION(BlueprintNativeEvent, Category = "Item")
     void OnUsed(AActor* User);
+
+        // F키 입력 시 PlayerBase의 HandleInteractInput에서 호출
+    // bPlayerInRange 체크 후 실제 습득 처리 (기존 TryPickupByInput 대체)
+    UFUNCTION(BlueprintNativeEvent, Category = "Item")
+    void TryPickup(AActor* Picker);
 };

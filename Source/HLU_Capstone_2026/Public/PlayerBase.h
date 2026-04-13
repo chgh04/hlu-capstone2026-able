@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "DefaultCharBase.h"
 #include "CheckpointInteractable.h"
+#include "InteractReceiver.h"
 #include "PlayerBase.generated.h"
 
 /**
@@ -12,8 +13,11 @@
  HealthComponent와의 통신을 위해 IDamageable 인터페이스를 구현합니다. 
  */
 
+// 전방 선언
+class AInteractableBase;
+
 UCLASS()
-class HLU_CAPSTONE_2026_API APlayerBase : public ADefaultCharBase, public ICheckpointInteractable
+class HLU_CAPSTONE_2026_API APlayerBase : public ADefaultCharBase, public ICheckpointInteractable, public IInteractReceiver
 {
 	GENERATED_BODY()
 
@@ -29,6 +33,27 @@ protected:
 public:
     virtual void RestAtCheckpoint_Implementation(float HealPercentage) override;
 
+    // IInteractReceiver - 아이템 등록/해제
+    virtual void RegisterNearbyItem_Implementation(AActor* Item) override;
+    virtual void UnregisterNearbyItem_Implementation(AActor* Item) override;
+
+    // IInteractReceiver - 인터랙터블 등록/해제
+    virtual void RegisterNearbyInteractable_Implementation(AActor* Interactable) override;
+    virtual void UnregisterNearbyInteractable_Implementation(AActor* Interactable) override;
+
+    // BP_Player의 IA_Interact(F키) Started에서 호출
+    // 기존 Get All Actors Of Class 두 개를 이 함수 하나로 대체
+    UFUNCTION(BlueprintCallable, Category = "Interaction")
+    void HandleInteractInput();
+
+private:
+    // 근처 아이템 목록 - RegisterNearbyItem으로 등록, F키 시 순회
+    UPROPERTY()
+    TArray<AActor*> NearbyItems;
+
+    // 근처 인터랙터블 목록 - RegisterNearbyInteractable으로 등록, F키 시 순회
+    UPROPERTY()
+    TArray<AActor*> NearbyInteractables;
 
 // 컴포넌트 생성 --------------------------------------
 protected:

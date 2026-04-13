@@ -10,6 +10,9 @@
 #include "PaperFlipbook.h"
 #include "PaperSprite.h"
 #include "GhostActor.h"
+#include "InteractReceiver.h"
+#include "Rootable.h"
+#include "InteractableBase.h"
 
 APlayerBase::APlayerBase()
 {
@@ -990,34 +993,6 @@ float APlayerBase::FilterInputWhileOnWall(float MovementVectorX)
 
     return MovementVectorX;
 }
-void APlayerBase::UsePotion()
-{
-    // 포션이 없으면 사용 취소
-    if (CurrentPotionCount <= 0)
-    {
-        return;
-    }
-
-    if (HealthComponent)
-    {
-        // 최대 체력 비례 회복량 계산 후 체력 회복
-        HealthComponent->HealHealth(PotionHealAmount);
-
-        // 포션 사용 횟수 차감
-        CurrentPotionCount--;
-
-        UE_LOG(LogTemp, Warning, TEXT("Player: Potion used, remaining: %d / %d"),
-            CurrentPotionCount, MaxPotionCount);
-    }
-}
-
-void APlayerBase::RefillPotion()
-{
-    // 포션 사용 횟수를 최대치로 충전
-    CurrentPotionCount = MaxPotionCount;
-
-    UE_LOG(LogTemp, Warning, TEXT("Player: Potion refilled to %d"), MaxPotionCount);
-}
 
 bool APlayerBase::IsCharacterCanAction()
 {
@@ -1067,4 +1042,86 @@ void APlayerBase::SpawnGhostTrail()
             }
         }
     }
+}
+
+
+void APlayerBase::RegisterNearbyItem_Implementation(AActor* Item)
+{
+    if (Item)
+    {
+        NearbyItems.AddUnique(Item);
+    }
+}
+
+void APlayerBase::UnregisterNearbyItem_Implementation(AActor* Item)
+{
+    NearbyItems.Remove(Item);
+}
+
+void APlayerBase::RegisterNearbyInteractable_Implementation(AActor* Interactable)
+{
+    if (Interactable)
+    {
+        NearbyInteractables.AddUnique(Interactable);
+    }
+}
+
+void APlayerBase::UnregisterNearbyInteractable_Implementation(AActor* Interactable)
+{
+    NearbyInteractables.Remove(Interactable);
+}
+
+void APlayerBase::HandleInteractInput()
+{
+    // 인터랙터블 먼저 처리 (NPC, 체크포인트 등이 아이템보다 우선)
+    // 복사본으로 순회 - 순회 중 배열이 변경되어도 안전
+    TArray<AActor*> InteractablesCopy = NearbyInteractables;
+    for (AActor* Interactable : InteractablesCopy)
+    {
+        AInteractableBase* Base = Cast<AInteractableBase>(Interactable);
+        if (Base)
+        {
+            Base->TryInteract(this);
+        }
+    }
+
+    // 아이템 처리 - IRootable::TryPickup 호출 
+    // 복사본으로 순회 - 습득 시 NearbyItems가 변경되어도 안전
+    TArray<AActor*> ItemsCopy = NearbyItems;
+    for (AActor* Item : ItemsCopy)
+    {
+        if (Item && Item->Implements<URootable>())
+        {
+            IRootable::Execute_TryPickup(Item, this);
+        }
+    }
+}
+
+void APlayerBase::UsePotion()
+{
+    // 포션이 없으면 사용 취소
+    if (CurrentPotionCount <= 0)
+    {
+        return;
+    }
+
+    if (HealthComponent)
+    {
+        // 최대 체력 비례 회복량 계산 후 체력 회복
+        HealthComponent->HealHealth(PotionHealAmount);
+
+        // 포션 사용 횟수 차감
+        CurrentPotionCount--;
+
+        UE_LOG(LogTemp, Warning, TEXT("Player: Potion used, remaining: %d / %d"),
+            CurrentPotionCount, MaxPotionCount);
+    }
+}
+
+void APlayerBase::RefillPotion()
+{
+    // 포션 사용 횟수를 최대치로 충전
+    CurrentPotionCount = MaxPotionCount;
+
+    UE_LOG(LogTemp, Warning, TEXT("Player: Potion refilled to %d"), MaxPotionCount);
 }
