@@ -283,7 +283,10 @@ void AEnemyBase::ChaseOnSimpleFSM()
         FVector Direction = TargetPlayer->GetActorLocation() - GetActorLocation();
 
         // 하늘을 날아다니지 않는다면 위 방향 무시
-        Direction.Z = 0.0f;
+        if (!bIsFlyingEnemy)
+        {
+            Direction.Z = 0.0f;
+        }
 
         // 이동방향 정규화
         Direction.Normalize();
