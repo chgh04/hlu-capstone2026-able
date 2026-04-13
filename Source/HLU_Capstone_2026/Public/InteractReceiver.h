@@ -15,8 +15,8 @@ class HLU_CAPSTONE_2026_API IInteractReceiver
     GENERATED_BODY()
 
 public:
-    // 아이템 등록/해제
-        // 아이템이 오버랩 범위에 들어올 때 플레이어에게 자신을 등록
+// 아이템 등록/해제
+    // 아이템이 오버랩 범위에 들어올 때 플레이어에게 자신을 등록
     UFUNCTION(BlueprintNativeEvent, Category = "Interaction")
     void RegisterNearbyItem(AActor* Item);
 
@@ -24,14 +24,18 @@ public:
     UFUNCTION(BlueprintNativeEvent, Category = "Interaction")
     void UnregisterNearbyItem(AActor* Item);
 
-    // 인터랙터블 등록/해제
-        // 인터랙터블이 오버랩 범위에 들어올 때 플레이어에게 자신을 등록
+// 인터랙터블 등록/해제
+    // 인터랙터블이 오버랩 범위에 들어올 때 플레이어에게 자신을 등록
     UFUNCTION(BlueprintNativeEvent, Category = "Interaction")
     void RegisterNearbyInteractable(AActor* Interactable);
 
     // 인터랙터블이 오버랩 범위를 벗어날 때 플레이어에서 자신을 해제
     UFUNCTION(BlueprintNativeEvent, Category = "Interaction")
     void UnregisterNearbyInteractable(AActor* Interactable);
+
+    // 플레이어에서 InteractableBase에게 TryInteract 실행 신호 전달
+    UFUNCTION(BlueprintNativeEvent, Category = "Interaction")
+    void TryInteract(AActor* Interactable);
 };
 
 

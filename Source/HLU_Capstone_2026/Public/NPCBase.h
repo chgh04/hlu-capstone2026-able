@@ -24,9 +24,18 @@ public:
 protected:
     virtual void BeginPlay() override;
 
+// 컴포넌트 생성
+protected:
+    
+
+// 인터페이스/상속 구현
+protected:
+    // AInteractableBase의 OnInteract 구현
+    virtual void OnInteract_Implementation(AActor* Interactor) override;
+
+// NPC 타입/정보 관련 함수/변수
 public:
-    // 디테일 패널 드롭다운에서 NPC 유형 선택
-    // 유형에 따라 OnInteract에서 다른 기능 수행
+    // NPC 유형, 드롭다운에서 선택, 유형에 따라 OnInteract에서 다른 기능 수행
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
     ENPCType NPCType = ENPCType::None;
 
@@ -34,6 +43,8 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
     FString NPCName = TEXT("NPC");
 
+// NPC 대화 관련 함수/변수
+public:
     // NPC 대화 내용 - 배열로 여러 줄 대화 가능
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
     TArray<FText> DialogueLines;
@@ -45,10 +56,6 @@ public:
     // 현재 대화 중인지 판단
     UPROPERTY(BlueprintReadOnly, Category = "NPC")
     bool bIsInDialogue = false;
-
-public:
-    // AInteractableBase의 OnInteract 구현
-    virtual void OnInteract_Implementation(AActor* Interactor) override;
 
     // 대화 다음 줄로 넘기기 - UI에서 호출
     UFUNCTION(BlueprintCallable, Category = "NPC")

@@ -12,7 +12,6 @@
 #include "GhostActor.h"
 #include "InteractReceiver.h"
 #include "Rootable.h"
-#include "InteractableBase.h"
 
 APlayerBase::APlayerBase()
 {
@@ -89,6 +88,62 @@ void APlayerBase::RestAtCheckpoint_Implementation(float HealPercentage)
     CurrentPotionCount = MaxPotionCount;
 
     UE_LOG(LogTemp, Warning, TEXT("Player: Rested at Checkpoint!"));
+}
+
+void APlayerBase::RegisterNearbyItem_Implementation(AActor* Item)
+{
+    if (Item)
+    {
+        NearbyItems.AddUnique(Item);
+    }
+}
+
+void APlayerBase::UnregisterNearbyItem_Implementation(AActor* Item)
+{
+    NearbyItems.Remove(Item);
+}
+
+void APlayerBase::RegisterNearbyInteractable_Implementation(AActor* Interactable)
+{
+    if (Interactable)
+    {
+        NearbyInteractables.AddUnique(Interactable);
+    }
+}
+
+void APlayerBase::UnregisterNearbyInteractable_Implementation(AActor* Interactable)
+{
+    NearbyInteractables.Remove(Interactable);
+}
+
+void APlayerBase::HandleInteractInput()
+{
+    // 인터랙터블 먼저 처리 (NPC, 체크포인트 등이 아이템보다 우선)
+    // 복사본으로 순회 - 순회 중 배열이 변경되어도 안전
+    TArray<AActor*> InteractablesCopy = NearbyInteractables;
+    for (AActor* Interactable : InteractablesCopy)
+    {   
+        if (Interactable && Interactable->Implements<UInteractReceiver>())
+        {
+            IInteractReceiver::Execute_TryInteract(Interactable, this);
+        }
+        //AInteractableBase* Base = Cast<AInteractableBase>(Interactable);
+        //if (Base)
+        //{
+        //    Base->TryInteract(this);
+        //}
+    }
+
+    // 아이템 처리 - IRootable::TryPickup 호출 
+    // 복사본으로 순회 - 습득 시 NearbyItems가 변경되어도 안전
+    TArray<AActor*> ItemsCopy = NearbyItems;
+    for (AActor* Item : ItemsCopy)
+    {
+        if (Item && Item->Implements<URootable>())
+        {
+            IRootable::Execute_TryPickup(Item, this);
+        }
+    }
 }
 
 void APlayerBase::TryAttack()
@@ -1040,59 +1095,6 @@ void APlayerBase::SpawnGhostTrail()
                 // GhostActor에게 텍스처와 스케일(좌우 반전 상태) 넘겨주기
                 Ghost->InitGhost(CurrentSprtie, GetActorScale3D());
             }
-        }
-    }
-}
-
-
-void APlayerBase::RegisterNearbyItem_Implementation(AActor* Item)
-{
-    if (Item)
-    {
-        NearbyItems.AddUnique(Item);
-    }
-}
-
-void APlayerBase::UnregisterNearbyItem_Implementation(AActor* Item)
-{
-    NearbyItems.Remove(Item);
-}
-
-void APlayerBase::RegisterNearbyInteractable_Implementation(AActor* Interactable)
-{
-    if (Interactable)
-    {
-        NearbyInteractables.AddUnique(Interactable);
-    }
-}
-
-void APlayerBase::UnregisterNearbyInteractable_Implementation(AActor* Interactable)
-{
-    NearbyInteractables.Remove(Interactable);
-}
-
-void APlayerBase::HandleInteractInput()
-{
-    // 인터랙터블 먼저 처리 (NPC, 체크포인트 등이 아이템보다 우선)
-    // 복사본으로 순회 - 순회 중 배열이 변경되어도 안전
-    TArray<AActor*> InteractablesCopy = NearbyInteractables;
-    for (AActor* Interactable : InteractablesCopy)
-    {
-        AInteractableBase* Base = Cast<AInteractableBase>(Interactable);
-        if (Base)
-        {
-            Base->TryInteract(this);
-        }
-    }
-
-    // 아이템 처리 - IRootable::TryPickup 호출 
-    // 복사본으로 순회 - 습득 시 NearbyItems가 변경되어도 안전
-    TArray<AActor*> ItemsCopy = NearbyItems;
-    for (AActor* Item : ItemsCopy)
-    {
-        if (Item && Item->Implements<URootable>())
-        {
-            IRootable::Execute_TryPickup(Item, this);
         }
     }
 }

@@ -3,6 +3,7 @@
 #include "PaperSpriteComponent.h"
 #include "BlueprintGameplayTagLibrary.h"
 #include "InteractReceiver.h"
+#include "PaperFlipbookComponent.h"
 
 AInteractableBase::AInteractableBase()
 {
@@ -15,9 +16,9 @@ AInteractableBase::AInteractableBase()
     InteractRange->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Overlap);
     InteractRange->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
-    SpriteComponent = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("SpriteComponent"));
-    SpriteComponent->SetupAttachment(RootComponent);
-    SpriteComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    FlipbookComponent = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("FlipbookComponent"));
+    FlipbookComponent->SetupAttachment(RootComponent);
+    FlipbookComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
     InteractEffect = CreateDefaultSubobject<UNiagaraComponent>(TEXT("InteractEffect"));
     InteractEffect->SetupAttachment(RootComponent);
@@ -73,7 +74,7 @@ void AInteractableBase::OnInteractRangeEndOverlap(UPrimitiveComponent* Overlappe
     }
 }
 
-void AInteractableBase::TryInteract(AActor* Interactor)
+void AInteractableBase::TryInteract_Implementation(AActor* Interactor)
 {
     if (!bPlayerInRange) return;
     OnInteract(Interactor);

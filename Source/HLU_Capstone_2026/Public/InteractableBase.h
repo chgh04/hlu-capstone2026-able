@@ -4,13 +4,14 @@
 #include "GameFramework/Actor.h"
 #include "GameplayTagContainer.h"
 #include "NiagaraComponent.h"
+#include "InteractReceiver.h"
 #include "InteractableBase.generated.h"
 
 //FOnInteractSignature 델리게이트
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractSignature, AActor*, Interactor);
 
 UCLASS()
-class HLU_CAPSTONE_2026_API AInteractableBase : public AActor
+class HLU_CAPSTONE_2026_API AInteractableBase : public AActor, public IInteractReceiver
 {
     GENERATED_BODY()
 
@@ -20,16 +21,19 @@ public:
 protected:
     virtual void BeginPlay() override;
 
+// 컴포넌트 생성
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     class USphereComponent* InteractRange;
 
+    // 플립북 애니메이션 컴포넌트
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    class UPaperSpriteComponent* SpriteComponent;
+    class UPaperFlipbookComponent* FlipbookComponent;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UNiagaraComponent* InteractEffect;
 
+// 상호작용 관련 함수/변수
 public:
     // 상호작용 범위 반경 - 디테일 패널에서 조정 가능
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interactable")
@@ -39,14 +43,13 @@ public:
     UPROPERTY(BlueprintReadOnly, Category = "Interactable")
     bool bPlayerInRange = false;
 
-public:
     // 자식 클래스에서 반드시 구현 - 실제 상호작용 로직
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interactable")
     void OnInteract(AActor* Interactor);
 
     // BP_Player의 IA_Interact에서 호출
     UFUNCTION(BlueprintCallable, Category = "Interactable")
-    void TryInteract(AActor* Interactor);
+    void TryInteract_Implementation(AActor* Interactor);
 
 protected:
     UFUNCTION()

@@ -1,5 +1,6 @@
 #include "NPCBase.h"
 
+
 ANPCBase::ANPCBase()
 {
     PrimaryActorTick.bCanEverTick = false;
