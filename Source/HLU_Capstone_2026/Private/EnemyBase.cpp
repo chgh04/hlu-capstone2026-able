@@ -354,7 +354,7 @@ bool AEnemyBase::IsCharacterCanAction()
     bool bIsCanAct = Super::IsCharacterCanAction();
 
     // 행동 가능한 상태 또는 공격중이지 않은 상태
-    bIsCanAct = bIsCanAct || !bIsHit;
+    bIsCanAct = bIsCanAct && !bIsHit;
 
     return bIsCanAct;
 }

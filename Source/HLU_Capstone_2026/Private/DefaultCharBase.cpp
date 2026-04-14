@@ -454,7 +454,7 @@ void ADefaultCharBase::DodgeStart(float Time)
     bIsDodging = true;
 
     // 회피 애니메이션 재생
-    PlayDodgeAnimation();
+    //PlayDodgeAnimation();
 
     // 기존 회피 타이머가 있다면 강제 초기화
     GetWorldTimerManager().ClearTimer(DodgeTimerHandle);

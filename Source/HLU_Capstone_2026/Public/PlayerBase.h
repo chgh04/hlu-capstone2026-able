@@ -119,6 +119,10 @@ protected:
     UFUNCTION(BlueprintImplementableEvent, Category = "Combat")
     void PlayDownwardAirAttackAnimation();
 
+    // 플레이어의 공중 공격 플래그
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+    bool bIsAirAttacking = false;
+
 public:
     // 플레이어의 애니메이션 강제종료 함수
     UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "Combat")
@@ -166,7 +170,7 @@ private:
     // 콤보 초기화 변수가 포함된 함수
     void FullResetCombo();
 
-// 피격 관련 함수/변수
+// 피격 관련 함수/변수 --------------------------------------
 protected:
     // 부모클래스에서 상속받아 사용
     virtual bool GetHit(const FDamageData& DamageData) override;
@@ -185,7 +189,7 @@ protected:
 
     // 플레이어의 최대 점프 가능 횟수
     UPROPERTY(EditDefaultsOnly, Category = "Player_Movement")
-    int32 MaxJumpCount = 2;
+    bool bCanDoubleJump = false;
 
     // 현재 플레이어의 점프 횟수 카운트
     int32 CurrentJumpCount = 0; 
@@ -219,15 +223,41 @@ protected:
     // 플레이어 회피 시 전진성
     UPROPERTY(EditDefaultsOnly, Category = "Combat")
     float DodgeVelocity = 500.0f;
+    
+    // 플레이어 공중대시 플래그 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat")
+    bool bCanAirDash = false;
+
+    // 플레이어의 기본 중력 적용값
+    float PlayerGravity = 1.0f;
+
+    // 플레이어 공중대시 최대 사용 횟수
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat")
+    int32 MaxAirDashCount = 1;
+
+    // 플레이어의 현재 공중대시 사용 횟수
+    int32 CurrentAirDashCount = 0;
 
     // 플레이어 회피시도함수 재정의
     virtual bool TryDodge(float Time) override;
 
-    // 플레이어 회피함수 재정의
+    // 지상 대시 시도 함수
+    bool TryGroundDodge(float Time);
+
+    // 플레이어 지상회피함수 재정의
     virtual void DodgeStart(float Time) override;
 
-    // 플레이어 회피종료함수 재저의
+    // 플레이어 지상회피종료함수 재저의
     virtual void DodgeEnd() override;
+
+    // 공중 대시 시도 함수
+    bool TryAirDash();
+
+    // 공중 대시 시작 함수
+    void AirDashStart();
+
+    // 공주 대시 종료 함수
+    void AirDashEnd();
 
     // 회피 쿨타임 초기화 함수 재정의
     virtual void ResetDodgeCooldown() override;
@@ -382,11 +412,41 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Player_Potion")
     void RefillPotion();
 
+// 플레이어 상호작용 관련 함수/변수 --------------------------------------
+protected:
+    // 플레이어 상호작용 플래그
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+    bool bIsInteracting = false;
+
+    // 기본 카메라 스프링 암 길이 저장 변수
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+    float OriginArmLength;
+
+    // 기본 카메라 스프링 오프셋 저장 변수
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+    FVector OriginSocketOffset;
+
+    // 상호작용 대상의 포인터를 받아 카메라 연출 시작
+    UFUNCTION(BlueprintImplementableEvent, Category = "Player_Camera")
+    void PlayInteractCameraZoomIn(FVector MidpointOffset, AActor* InteractTarget);
+
+    // 상호작용이 끝나면 원래 카메라 상태로 되돌림
+    UFUNCTION(BlueprintImplementableEvent, Category = "Player_Camera")
+    void PlayInteractCameraZoomOut();
+
+    // 상호작용 강제 중단(Escape)
+    UFUNCTION(BlueprintCallable, Category = "Interaction")
+    void CancelInteraction();
+
 // 기타 추가 기능 --------------------------------------
 protected:
     // 플레이어가 이동/공격을 제한하는 이상상태에 있는지 판단하는 함수
     // 행동 가능하면 true, 행동이 불가능하면 false를 반환
     virtual bool IsCharacterCanAction() override;
+
+    // 모든 가드/회피 플래그 초기화 함수, 공격/콤보 초기화는 FullResetCombo 및 EndAttackState에서 수행, 모든 플래그가 미리 호출되긴 하지만, 보험용으로 존재합니다. 
+    UFUNCTION(BlueprintCallable, Category = "Combat")
+    void ResetCombatStates();
 
     // 플레이어 콤보 관련 타이머 관리자
     FTimerHandle ComboTimerHandle;

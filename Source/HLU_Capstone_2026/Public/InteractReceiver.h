@@ -33,6 +33,8 @@ public:
     UFUNCTION(BlueprintNativeEvent, Category = "Interaction")
     void UnregisterNearbyInteractable(AActor* Interactable);
 
+// 인터랙터블 상호작용
+public:
     // 플레이어에서 InteractableBase에게 TryInteract 실행 신호 전달
     UFUNCTION(BlueprintNativeEvent, Category = "Interaction")
     void TryInteract(AActor* Interactable);

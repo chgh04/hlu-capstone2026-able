@@ -39,6 +39,14 @@ void APlayerBase::BeginPlay()
 
     // 플레이어 최대 이동속도 저장
     SavedPlayerMaxWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
+
+    // 플레이어 카메라 기본 세팅 저장
+    if (CameraString)
+    {
+        OriginArmLength = CameraString->TargetArmLength;
+        OriginSocketOffset = CameraString->SocketOffset;
+    }
+
 }
 
 void APlayerBase::Tick(float DeltaTime)
@@ -117,21 +125,30 @@ void APlayerBase::UnregisterNearbyInteractable_Implementation(AActor* Interactab
 }
 
 void APlayerBase::HandleInteractInput()
-{
+{   
     // 인터랙터블 먼저 처리 (NPC, 체크포인트 등이 아이템보다 우선)
     // 복사본으로 순회 - 순회 중 배열이 변경되어도 안전
     TArray<AActor*> InteractablesCopy = NearbyInteractables;
-    for (AActor* Interactable : InteractablesCopy)
-    {   
-        if (Interactable && Interactable->Implements<UInteractReceiver>())
-        {
-            IInteractReceiver::Execute_TryInteract(Interactable, this);
+    if (InteractablesCopy.Num() > 0)
+    {
+        AActor* Target = NearbyInteractables[0];
+        if (Target && Target->Implements<UInteractReceiver>())
+        {   
+            // 플레이어 기준 플레이어와 오브젝트 사이 중간 지점 계산
+            FVector Midpoint = (GetActorLocation() + Target->GetActorLocation()) * 0.5f;
+            FVector RelativeOffset = Midpoint - GetActorLocation();
+            RelativeOffset.Z = OriginSocketOffset.Z - 20.f;
+
+            // 상호작용 상태 돌입
+            bIsInteracting = true;
+
+            // 카메라 줌 인 기능 시작
+            PlayInteractCameraZoomIn(RelativeOffset, Target);
+
+            // 타겟의 기능 실행
+            IInteractReceiver::Execute_TryInteract(Target, this);
+            return;
         }
-        //AInteractableBase* Base = Cast<AInteractableBase>(Interactable);
-        //if (Base)
-        //{
-        //    Base->TryInteract(this);
-        //}
     }
 
     // 아이템 처리 - IRootable::TryPickup 호출 
@@ -267,7 +284,7 @@ void APlayerBase::ResetCombo()
 
     // UE_LOG(LogTemp, Warning, TEXT("Reset Combo Called!"));
 
-    // 가드 선입력이 있는지 판단, 가드 선입력이 눌려질 시 선입력된 회피/공격은 취소
+    // 1. 가드 선입력이 있는지 판단, 가드 선입력이 눌려질 시 선입력된 회피/공격은 취소
     if (bSaveGuard && bCanGuard)
     {   
         //UE_LOG(LogTemp, Warning, TEXT("Guard Input Buffered Excuted!"));
@@ -286,7 +303,7 @@ void APlayerBase::ResetCombo()
         return;
     }
 
-    // 회피 선입력이 있는지 판단, 회피 선입력이 눌려질 시 선입력된 공격은 취소
+    // 2. 회피 선입력이 있는지 판단, 회피 선입력이 눌려질 시 선입력된 공격은 취소
     if (bSaveDodge && bCanDodge)
     {   
         //UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffered After Attack!"));
@@ -299,12 +316,26 @@ void APlayerBase::ResetCombo()
         // 모든 콤보 변수 초기화
         FullResetCombo();
 
-        // 회피 시작
-        DodgeStart(DodgeDuration);
+        // 회피 선입력이 공중공격 이후 호출되었다면, 즉시 리턴, 공중대시가 가능하면 그대로 실행
+        if (bIsAirAttacking && !bCanAirDash)
+        {
+            return;
+        }
+
+        if (TryAirDash())
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Try Air Dash!"));
+        }
+        else
+        {   
+            UE_LOG(LogTemp, Warning, TEXT("Try Ground Dash!"));
+            TryGroundDodge(DodgeDuration);
+        }
+
         return;
     }
 
-    // 선입력 되었다면 즉시 다음 공격 실행
+    // 3. 공격 선입력이 있는지 판단. 선입력 되었다면 즉시 다음 공격 실행
     if (bSaveAttack)
     {   
         ComboCount++;
@@ -356,9 +387,11 @@ void APlayerBase::FullResetCombo()
     bIsAttacking = false;
     bSaveAttack = false;
     bIsWaitNextAttackInput = false;
+    bIsAirAttacking = false;
+    //bIgnoreSaveAttack = true; 이건 여기서 바뀌면 안되서 EndAttackState에서 호출합니다. 
     ComboCount = 0;
 
-    // UE_LOG(LogTemp, Warning, TEXT("C++: Combo Reset(PlayerBase)"));
+    UE_LOG(LogTemp, Warning, TEXT("PlayerBase Reset All Attack State"));
 }
 
 bool APlayerBase::GetHit(const FDamageData& DamageData)
@@ -390,6 +423,9 @@ bool APlayerBase::GetHit(const FDamageData& DamageData)
     bSaveAttack = false;    // 선입력된 공격 중단
     bIsWaitNextAttackInput = false; // 대기시간 중 입력된 공격 중단 
     ComboCount = 0; // 콤보 초기화
+
+    // 모든 회피/가드 플래그 리셋 (버그 방지용)
+    ResetCombatStates();
 
     // 기존에 돌고 있던 피격 타이머가 있다면 초기화 (연속 피격 대비)
     GetWorldTimerManager().ClearTimer(HitInvincibleTimerHandle);
@@ -443,7 +479,7 @@ void APlayerBase::TryJump()
         return;
     }
 
-    // 벽에서 점프가 호출되었을 경우
+    // 2. 벽에서 점프가 호출되었을 경우
     if (bIsOnWall)
     {
         bIsOnWall = false;
@@ -475,14 +511,14 @@ void APlayerBase::TryJump()
         return;
     }
 
-    // 2. 점프가 불가능한 상황에서는 점프 불가
+    // 3. 점프가 불가능한 상황에서는 선입력만 받고 리턴
     if (!IsCharacterCanAction() || bIsAttacking)
     {
         // 회피 도중 호출될 시 선입력 저장 
         if (bIsDodging)
         {
             bSaveJump = true;
-            //UE_LOG(LogTemp, Warning, TEXT("Jump Buffered during Dash!"));
+            UE_LOG(LogTemp, Warning, TEXT("Jump Buffered during Dash!"));
 
             FTimerHandle BufferTimer;
             GetWorldTimerManager().SetTimer(BufferTimer, FTimerDelegate::CreateLambda([this]() {
@@ -494,13 +530,12 @@ void APlayerBase::TryJump()
         return;
     }
 
-    // 3. 함수 호출 당시의 수직 제외 수평 속도만 추출 및 최대 허용 속도 지정
+    // 5. 점프 전 함수 호출 당시의 수직 제외 수평 속도만 추출 및 최대 허용 속도 지정
+    float XVelocity = MovementComp->Velocity.X;
     FVector HorizontalVelocity = FVector(MovementComp->Velocity.X, MovementComp->Velocity.Y, 0.0f);
     float MaxAllowedJumpSpeed = SavedPlayerMaxWalkSpeed * 1.15f;    // 허용할 점프 최대 속도
 
-    // UE_LOG(LogTemp, Warning, TEXT("Jump Tried!"));
-
-    // 4. 플레이어 적용 속도 계산
+    // 플레이어 적용 속도 계산
     if (HorizontalVelocity.Size() > MaxAllowedJumpSpeed)
     {
         // 속도와 방향을 유지한 채, 크기만 최대 허용치로 줄이기
@@ -508,25 +543,31 @@ void APlayerBase::TryJump()
 
         // 조절된 수평 속도에 기존 Z축 속도를 합쳐서 덮어씌우기
         MovementComp->Velocity = FVector(HorizontalVelocity.X, HorizontalVelocity.Y, MovementComp->Velocity.Z);
-
-        //UE_LOG(LogTemp, Warning, TEXT("Dash-Jump Speed Clamped to %f!"), MaxAllowedJumpSpeed);
     }
+    UE_LOG(LogTemp, Warning, TEXT("Dash-Jump Speed Clamped to %f! Now Speed is %f"), MaxAllowedJumpSpeed, MovementComp->Velocity.X);
 
-    // 5. 이단점프 실행 로직
+    // 6. 이단점프 실행 로직
     if (MovementComp->IsFalling())
     {
-        if (CurrentJumpCount < MaxJumpCount)
+        if (bCanDoubleJump)
         {
             ExcuteDoubleJump();
+        }
+        // 공중에서 이단점프 안되면 바로 리턴
+        else
+        {   
+            UE_LOG(LogTemp, Warning, TEXT("Cant Dobule Jump!"));
             return;
         }
     }
-    // 6. 기본 점프(지면에서의) 실행 로직
+    // 7. 기본 점프(지면에서의) 실행 로직
     else
     {
         bIsJumping = true;  // 점프 플래그 활성화
+        CurrentJumpCount = 1;
+        UE_LOG(LogTemp, Warning, TEXT("Ground Jump Start!"));
 
-        // 만약 Crouched때문에 엔진 내부에서 점프가 안될 경우, Lauch로 캐릭터 강제 점프
+        // 만약 Crouched때문에 엔진 내부에서 점프가 안될 경우, Launch로 캐릭터 강제 점프
         if (bIsCrouched)
         {
             UnCrouch();
@@ -534,13 +575,11 @@ void APlayerBase::TryJump()
             //UE_LOG(LogTemp, Warning, TEXT("Jump Start! (LauchCharacter)"));
             FVector JumpForce = FVector(0.f, 0.f, MovementComp->JumpZVelocity);
             LaunchCharacter(JumpForce, false, true);
-
-            return;
         }
-
-        //UE_LOG(LogTemp, Warning, TEXT("Jump Start!"));
-        CurrentJumpCount = 1;
-        Jump();
+        else
+        {
+            Jump();
+        }
     }
 }
 
@@ -571,9 +610,8 @@ void APlayerBase::Landed(const FHitResult& Hit)
     {
         bSaveDodge = false;
 
-        DodgeStart(DodgeDuration);
-
-        //UE_LOG(LogTemp, Warning, TEXT("Landing Dash Executed by Buffer!"));
+        UE_LOG(LogTemp, Warning, TEXT("Landing Dodge Executed by Buffer!"));
+        TryGroundDodge(DodgeDuration);
     }
 
     // 점프 횟수 초기화
@@ -581,6 +619,9 @@ void APlayerBase::Landed(const FHitResult& Hit)
 
     // 벽타기 플래그 초기화
     bIsOnWall = false;
+
+    // 공중대시 횟수 초기화
+    CurrentAirDashCount = 0;
 
     // TODO: 이펙트, 사운드, 하드랜딩 분기
 }
@@ -619,10 +660,10 @@ void APlayerBase::StepForward(float StepForce)
     }
 
     // 달리는 도중의 판단값 설정
-    float RunThreshold = MovementComp->MaxWalkSpeed * 0.9f;
+    float RunThreshold = MovementComp->MaxWalkSpeed;
 
     // 배율 결정
-    float SpeedMultiplier = (SavedAttackSpeed > RunThreshold) ? AttackStepForceMultiplierWhileRun : 1.0f;
+    float SpeedMultiplier = (SavedAttackSpeed >= RunThreshold) ? AttackStepForceMultiplierWhileRun : 1.0f;
 
     // 최종 힘 계산
     float FinalForce = StepForce * SpeedMultiplier;
@@ -635,17 +676,11 @@ void APlayerBase::StepForward(float StepForce)
     FVector DashVelocity = ForwardDir * FinalForce;
     DashVelocity.Z = MovementComp->Velocity.Z;
     MovementComp->Velocity = DashVelocity;
-
-    //UE_LOG(LogTemp, Warning, TEXT("Current Speed: %f, Final Force: %f, Threshold: %f"), SavedAttackSpeed, FinalForce, RunThreshold);
 }
 
 bool APlayerBase::TryDodge(float Time)
 {
     // 부모클래스 함수를 호출하지 않습니다. 
-    /*if (!Super::TryDodge(Time))
-    {
-        return false;
-    }*/
 
     // 만약 회피가 불가능한 상황이면 회피하지 않고 false 리턴
     if (!IsCharacterCanAction())
@@ -654,26 +689,39 @@ bool APlayerBase::TryDodge(float Time)
         return false;
     }
 
+
     // 공격 도중 선입력이 있었거나 회피 불가능한 상황에서 입력이 있었을 경우
     if (bIsAttacking || !bCanDodge || MovementComp->IsFalling())
     {   
-        // 회피 선입력 트리거를 활성화
-        bSaveDodge = true;
-        //UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffered"));
+        // 만약 공중대시가 가능하고, 대시 카운트가 남아있을 경우
+        if (bCanAirDash && CurrentAirDashCount < MaxAirDashCount)
+        {
+            return TryAirDash();
+        }
+        // 이외의 경우엔 지상 회피 선입력 트리거 활성화
+        else
+        {
+            // 회피 선입력 트리거를 활성화
+            bSaveDodge = true;
+            UE_LOG(LogTemp, Warning, TEXT("Buffered Dodge Input"));
 
-        // 0.n초 뒤 예약 자동 해제
-        FTimerHandle BufferTimer;
-        GetWorldTimerManager().SetTimer(BufferTimer, FTimerDelegate::CreateLambda([this]() {
+            // 0.n초 뒤 예약 자동 해제
+            FTimerHandle BufferTimer;
+            GetWorldTimerManager().SetTimer(BufferTimer, FTimerDelegate::CreateLambda([this]() {
                 bSaveDodge = false;
-                //UE_LOG(LogTemp, Warning, TEXT("Dodge Input Buffer Canceled"));
-            }), 0.25f, false);
+                UE_LOG(LogTemp, Warning, TEXT("Buffered Dodge Input Ended"));
+                }), 0.25f, false);
 
-        // 회피가 실행되지 않았으니 false 리턴
-        return false;
+            // 회피가 실행되지 않았으니 false 리턴
+            return false;
+        }
     }
 
-    //UE_LOG(LogTemp, Warning, TEXT("Dodge Excuted!"));
-    // 문제가 없다면 회피 호출 후 true 리턴
+    return TryGroundDodge(Time);
+}
+
+bool APlayerBase::TryGroundDodge(float Time)
+{   
     DodgeStart(Time);
     return true;
 }
@@ -686,16 +734,14 @@ void APlayerBase::DodgeStart(float Time)
     // 실행 시 선입력 플래그 해제
     bSaveDodge = false;
 
-    if (!MovementComp)
-    {
-        return;
-    }
-
     // 플레이어의 입력 방향으로 즉시 전환
     UpdateFacingDirection();
 
     // 회피 중 입력 제한
     bIsMoveLockedWhileDodging = true;
+
+    // 회피 애니메이션 재생
+    PlayDodgeAnimation();
 
     LastGhostSpawnLocation = GetActorLocation();
 }
@@ -710,7 +756,7 @@ void APlayerBase::DodgeEnd()
     }
 
     if (bSaveJump)
-    {
+    {   
         bSaveJump = false;
 
         // 애니메이션 강제종료, 노티파이 스테이트의 UnCrouch 강제호출
@@ -723,16 +769,69 @@ void APlayerBase::DodgeEnd()
 
         return;
     }
-
-    // 캐릭터가 지면에 있다면, 대시 직후 속도를 평소보다 높게 설정
-    if (!MovementComp->IsFalling())
+    else
     {   
-        MovementComp->MaxWalkSpeed = DodgeVelocity * 1.1;
-    }
-    
-    // 일정 시간 이후 속도를 줄이는 타이머
-    GetWorldTimerManager().SetTimer(MomentumTimerHandle, this, &APlayerBase::DecelerateMomentum, 0.1f, true);
+        // 캐릭터가 지면에 있다면, 대시 직후 속도를 평소보다 높게 설정
+        if (!MovementComp->IsFalling())
+        {
+            MovementComp->MaxWalkSpeed = DodgeVelocity * 1.1;
 
+            // 일정 시간 이후 속도를 줄이는 타이머
+            GetWorldTimerManager().SetTimer(MomentumTimerHandle, this, &APlayerBase::DecelerateMomentum, 0.1f, true);
+        }
+    }
+}
+
+bool APlayerBase::TryAirDash()
+{   
+    UE_LOG(LogTemp, Warning, TEXT("Air Dash Tried!"));
+
+    Super::DodgeStart(DodgeDuration);
+
+    // 공중 대시 해금 여부 및 횟수 초과 검사
+    if (!bCanAirDash || CurrentAirDashCount >= MaxAirDashCount)
+    {
+        return false;
+    }
+
+    AirDashStart();
+    return true;
+}
+
+void APlayerBase::AirDashStart()
+{   
+    Super::DodgeEnd();
+
+    // 선입력 플래그 비활성화
+    bSaveDodge = false;
+
+    // 플레이어 입력방향 강제전환
+    UpdateFacingDirection();
+
+    // 회피 중 입력제한
+    bIsMoveLockedWhileDodging = true;
+    CurrentAirDashCount++;
+
+    // 추락 속도 초기화 및 중력 제거로 수직 이동
+    FVector CurrentVelocity = MovementComp->Velocity;
+    CurrentVelocity.Z = 0.f;
+    MovementComp->Velocity = CurrentVelocity;
+    MovementComp->GravityScale = 0.0f;
+
+    // 회피 애니메이션 재생
+    PlayDodgeAnimation();
+    LastGhostSpawnLocation = GetActorLocation();
+
+    UE_LOG(LogTemp, Warning, TEXT("AIr Dash Called, AirDashCount: %d"), CurrentAirDashCount);
+}
+
+void APlayerBase::AirDashEnd()
+{   
+    // 중력 복구
+    if (MovementComp)
+    {
+        MovementComp->GravityScale = PlayerGravity;
+    }
 }
 
 void APlayerBase::ResetDodgeCooldown()
@@ -878,7 +977,13 @@ void APlayerBase::OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdju
 }
 
 void APlayerBase::ChangeGravity()
-{
+{   
+    // 회피중인 경우 즉시 리턴
+    if (bIsDodging)
+    {
+        return;
+    }
+
     // 공중에 떠있는 경우에만 해당 함수 로직 실행
     if (MovementComp->IsFalling())
     {   
@@ -1049,11 +1154,89 @@ float APlayerBase::FilterInputWhileOnWall(float MovementVectorX)
     return MovementVectorX;
 }
 
+void APlayerBase::UsePotion()
+{
+    // 포션이 없으면 사용 취소
+    if (CurrentPotionCount <= 0)
+    {
+        return;
+    }
+
+    if (HealthComponent)
+    {
+        // 최대 체력 비례 회복량 계산 후 체력 회복
+        HealthComponent->HealHealth(PotionHealAmount);
+
+        // 포션 사용 횟수 차감
+        CurrentPotionCount--;
+
+        UE_LOG(LogTemp, Warning, TEXT("Player: Potion used, remaining: %d / %d"),
+            CurrentPotionCount, MaxPotionCount);
+    }
+}
+
+void APlayerBase::RefillPotion()
+{
+    // 포션 사용 횟수를 최대치로 충전
+    CurrentPotionCount = MaxPotionCount;
+
+    UE_LOG(LogTemp, Warning, TEXT("Player: Potion refilled to %d"), MaxPotionCount);
+}
+
+void APlayerBase::CancelInteraction()
+{   
+    // 상호작용 도중일때만 호출됨
+    if (bIsInteracting)
+    {
+        bIsInteracting = false;
+
+        PlayInteractCameraZoomOut();
+
+        UE_LOG(LogTemp, Warning, TEXT("Interaction Cancelled by ESC"));
+    }
+}
+
 bool APlayerBase::IsCharacterCanAction()
 {
     bool bIsCanAct = Super::IsCharacterCanAction();
 
+    bIsCanAct = bIsCanAct && !bIsInteracting;
+
     return bIsCanAct;
+}
+
+void APlayerBase::ResetCombatStates()
+{
+    // 1. 회피 관련 플래그 및 자원 카운트 강제 초기화
+    bIsDodging = false;
+    bSaveDodge = false;
+    bCanDodge = true;
+    bIsMoveLockedWhileDodging = false;
+    CurrentAirDashCount = 0;
+    MovementComp->GravityScale = PlayerGravity;
+    GetWorldTimerManager().ClearTimer(DodgeTimerHandle);
+    GetWorldTimerManager().ClearTimer(DodgeCooldownTimerHandle);
+    GetWorldTimerManager().ClearTimer(MomentumTimerHandle);
+    
+    // 2. 이동/점프 관련 플래그 및 자원 카운트 초기화
+    bIsJumping = false;
+    bSaveJump = false;
+    CurrentJumpCount = 0;
+    GetWorldTimerManager().ClearTimer(WallJumpLockoutTimerHandle);
+    MovementComp->GroundFriction = SavedGroundFriction;
+
+    // 3. 가드 관련 플래그 초기화
+    bIsGuarding = false;
+    bSaveGuard = false;
+    bIsGuardSuccess = false;
+    bCanGuard = false;
+    GetWorldTimerManager().ClearTimer(GuardTimerHandle);
+    GetWorldTimerManager().ClearTimer(GuardCooldownTimerHandle);
+    GetWorldTimerManager().ClearTimer(GuardRecoilTimerHandle);
+
+    // HitInvincibleTimerHandle 이건 초기화 안합니다. 이 함수가 맞을때 호출되는거라서
+
+    UE_LOG(LogTemp, Warning, TEXT("PlayerBase Reset All Dodge/Guard State"));
 }
 
 void APlayerBase::SpawnGhostTrail()
@@ -1097,35 +1280,6 @@ void APlayerBase::SpawnGhostTrail()
             }
         }
     }
-}
-
-void APlayerBase::UsePotion()
-{
-    // 포션이 없으면 사용 취소
-    if (CurrentPotionCount <= 0)
-    {
-        return;
-    }
-
-    if (HealthComponent)
-    {
-        // 최대 체력 비례 회복량 계산 후 체력 회복
-        HealthComponent->HealHealth(PotionHealAmount);
-
-        // 포션 사용 횟수 차감
-        CurrentPotionCount--;
-
-        UE_LOG(LogTemp, Warning, TEXT("Player: Potion used, remaining: %d / %d"),
-            CurrentPotionCount, MaxPotionCount);
-    }
-}
-
-void APlayerBase::RefillPotion()
-{
-    // 포션 사용 횟수를 최대치로 충전
-    CurrentPotionCount = MaxPotionCount;
-
-    UE_LOG(LogTemp, Warning, TEXT("Player: Potion refilled to %d"), MaxPotionCount);
 }
 
 //댕글링 포인터 크래시 방지
