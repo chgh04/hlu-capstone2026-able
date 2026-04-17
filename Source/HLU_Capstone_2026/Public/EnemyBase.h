@@ -91,6 +91,9 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
     bool bIsHit = false;
 
+// Enemy 이동/회피 관련 함수/변수 -------------------
+protected:
+
 // 플레이어 감지(AI) 관련 함수/변수 -------------------
 protected:
     // 코드구현 간단 FSM 사용 여부, 디테일 패널에서 끄고 켤 수 있음

@@ -169,7 +169,7 @@ void ADefaultCharBase::EndAttackState()
     if (MovementComp)
     {
         MovementComp->GroundFriction = SavedGroundFriction;
-        UE_LOG(LogTemp, Warning, TEXT("Default Char: Change GroundFriction to Normal"));
+        //UE_LOG(LogTemp, Warning, TEXT("Default Char: Change GroundFriction to Normal"));
     }
 
     // 마찬가지로 BP에서 오버라이드 해 별도 필요 기능을 구현할 수 있음
@@ -223,10 +223,12 @@ void ADefaultCharBase::ExecuteAttackHit(AActor* TargetActor, TSubclassOf<class U
 
     if (ActualDamage > 0.0f)
     {
-        UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Apply Hit Stop Custom"));
+        UE_LOG(LogTemp, Warning, TEXT("DefaultCharBase: Apply Hit Stop Custom"));
         // 자신에게 히트스탑 적용
-        ApplyHitStopCustom(0.05f, 0.01f);
+        ApplyHitStopCustom(0.1f, 0.1f);
     }
+
+    
 }
 
 void ADefaultCharBase::SetDefaultDamage(float Amount)
@@ -374,8 +376,8 @@ bool ADefaultCharBase::GetHit(const FDamageData& DamageData)
                     EndGuard();
                 }
 
-                // 0.2초 이후에 지면 마찰력 원래상태로 초기화
-                GetWorldTimerManager().SetTimer(GuardRecoilTimerHandle, this, &ADefaultCharBase::RestoreGuardPhysics, 0.2f, false);
+                // 0.2초 이후에 가드상태(지면 마찰력) 원래상태로 초기화
+                GetWorldTimerManager().SetTimer(GuardRecoilTimerHandle, this, &ADefaultCharBase::RestoreGuardState, 0.2f, false);
 
                 return false;
             }
@@ -456,6 +458,9 @@ void ADefaultCharBase::DodgeStart(float Time)
     // 회피 애니메이션 재생
     //PlayDodgeAnimation();
 
+    // 가드 성공 후의 넉백 타이머를 초기화
+    GetWorldTimerManager().ClearTimer(GuardRecoilTimerHandle);
+
     // 기존 회피 타이머가 있다면 강제 초기화
     GetWorldTimerManager().ClearTimer(DodgeTimerHandle);
 
@@ -491,6 +496,29 @@ void ADefaultCharBase::ResetDodgeCooldown()
 {
     bCanDodge = true;
     // UE_LOG(LogTemp, Warning, TEXT("Dodge is Ready again!"));
+}
+
+void ADefaultCharBase::ApplySpriteSortAmount()
+{
+    if (FlipbookComp)   
+    {   
+        // 현재 스프라이트의 로컬 위치 가져오기
+        FVector CurrentRelativeLoc = FlipbookComp->GetRelativeLocation();
+
+        if (GetActorForwardVector().X >= 0)
+        {
+            // 우측(앞)을 볼 때는 기본 오프셋
+            CurrentRelativeLoc.Y = SpriteLayerSortAmount;
+        }
+        else
+        {
+            // 좌측(뒤)을 볼 때는 로컬 Y축도 180도 돌아갔으므로 마이너스로 상쇄
+            CurrentRelativeLoc.Y = -SpriteLayerSortAmount;
+        }
+
+        // 상대위치 적용 
+        FlipbookComp->SetRelativeLocation(CurrentRelativeLoc);
+    }
 }
 
 bool ADefaultCharBase::TryGuard()
@@ -548,11 +576,11 @@ void ADefaultCharBase::EndGuard()
     // 가드상태 해제 
     bIsGuarding = false;
 
-    // 가드 성공 플래그 초기화
-    if (bIsGuardSuccess)
-    {
-        bIsGuardSuccess = false;
-    }
+    //// 가드 성공 플래그 초기화
+    //if (bIsGuardSuccess)
+    //{
+    //    bIsGuardSuccess = false;
+    //}
     
     UE_LOG(LogTemp, Warning, TEXT("C++ DefaultCharBase: Guard Ended!"));
 }
@@ -562,8 +590,14 @@ void ADefaultCharBase::ResetGuardCooldown()
     bCanGuard = true;
 }
 
-void ADefaultCharBase::RestoreGuardPhysics()
-{
+void ADefaultCharBase::RestoreGuardState()
+{   
+    // 가드 성공 플래그 초기화
+    if (bIsGuardSuccess)
+    {
+        bIsGuardSuccess = false;
+    }
+
     if (MovementComp)
     {
         MovementComp->GroundFriction = SavedGroundFriction;
@@ -575,4 +609,24 @@ bool ADefaultCharBase::IsCharacterCanAction()
     bool bIsCanAct = !(bIsKnockBack || bIsDead || bIsDodging || bIsGuarding);
 
     return bIsCanAct;
+}
+
+void ADefaultCharBase::ResetCombatStates()
+{
+    // 1. 회피 관련 플래그 및 자원 카운트 강제 초기화
+    bIsDodging = false;
+    bCanDodge = true;
+    GetWorldTimerManager().ClearTimer(DodgeTimerHandle);
+    GetWorldTimerManager().ClearTimer(DodgeCooldownTimerHandle);
+
+    // 2. 이동/점프 관련 플래그 및 자원 카운트 초기화
+    MovementComp->GroundFriction = SavedGroundFriction;
+
+    // 3. 가드 관련 플래그 초기화
+    bIsGuarding = false;
+    bIsGuardSuccess = false;
+    bCanGuard = true;
+    GetWorldTimerManager().ClearTimer(GuardTimerHandle);
+    GetWorldTimerManager().ClearTimer(GuardCooldownTimerHandle);
+    GetWorldTimerManager().ClearTimer(GuardRecoilTimerHandle);
 }

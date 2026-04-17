@@ -129,6 +129,7 @@ void AEnemyBase::TryAttack()
         // 뒤에 있으면 뒤돌아보고 공격
         DirectionToTarget.Z = 0.0f;
         SetActorRotation(DirectionToTarget.Rotation());
+        ApplySpriteSortAmount();    // 스프라이트 정렬 적용
         Attack();
     } 
 }
@@ -190,7 +191,7 @@ void AEnemyBase::StepForward()
 void AEnemyBase::ResetAttackCooldown()
 {
     bCanAttack = true;
-    UE_LOG(LogTemp, Warning, TEXT("Enemy Attack Cooldown Ready!"));
+    //UE_LOG(LogTemp, Warning, TEXT("Enemy Attack Cooldown Ready!"));
 }
 
 bool AEnemyBase::GetHit(const FDamageData& DamageData)
@@ -276,6 +277,9 @@ void AEnemyBase::ChaseOnSimpleFSM()
 
     //UE_LOG(LogTemp, Warning, TEXT("AI: Chasing Start, Distance: %.2f"), Distance);
 
+    // 캐릭터 스프라이트 정렬
+    ApplySpriteSortAmount();
+
     // 거리가 사거리보다 멀다면 다가가기
     if (Distance > AttackRange)
     {   
@@ -331,7 +335,7 @@ void AEnemyBase::CallAttackEndOnSimpleFSM()
     GetWorldTimerManager().ClearTimer(AttackCooldownTimerHandle);
     GetWorldTimerManager().SetTimer(AttackCooldownTimerHandle, this, &AEnemyBase::ResetAttackCooldown, RandomCooldown, false);
 
-    UE_LOG(LogTemp, Warning, TEXT("Enemy Attack Finished! Attck Cooldown: %.2f"), RandomCooldown);
+    //UE_LOG(LogTemp, Warning, TEXT("Enemy Attack Finished! Attck Cooldown: %.2f"), RandomCooldown);
 }
 
 void AEnemyBase::ResetHitStateOnSimpleFSM()
@@ -361,10 +365,9 @@ bool AEnemyBase::IsCharacterCanAction()
 
 void AEnemyBase::ResetHitFlash()
 {
-    UPaperFlipbookComponent* MySprite = GetSprite();
-    if (MySprite && OriginalMaterial)
+    if (FlipbookComp && OriginalMaterial)
     {
         // 다시 원래 머티리얼로 되돌리기
-        MySprite->SetMaterial(0, OriginalMaterial);
+        FlipbookComp->SetMaterial(0, OriginalMaterial);
     }
 }

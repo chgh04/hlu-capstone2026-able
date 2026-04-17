@@ -79,6 +79,9 @@ protected:
     // 공격 대상을 구분하는 함수(적) 구체화
     virtual bool CanAttackTarget(AActor* Target) const;
 
+    // 공격 적중 시 플레이어 영향 
+    virtual void ExecuteAttackHit(AActor* TargetActor, TSubclassOf<class UCustomDamageType> DamageType, float DamageMultiplier = 1.0f) override;
+
     // HitStop(역경직) 적용 시간
     UPROPERTY(EditDefaultsOnly, Category = "Combat")
     float HitStopTime = 0.05f;
@@ -346,6 +349,10 @@ protected:
     // 부모 ResetGuardCooldown 재정의
     virtual void ResetGuardCooldown() override;
 
+    // 플레이어의 가드 시 움직임 봉인 플래그
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+    bool bIsMoveLockedWhileGuarding = false;
+
 // 플레이어 벽타기 관련 함수/변수 --------------------------------------
 protected:
     // 플레이어가 벽타기가 가능한 상태인지에 대한 플래그
@@ -445,8 +452,11 @@ protected:
     virtual bool IsCharacterCanAction() override;
 
     // 모든 가드/회피 플래그 초기화 함수, 공격/콤보 초기화는 FullResetCombo 및 EndAttackState에서 수행, 모든 플래그가 미리 호출되긴 하지만, 보험용으로 존재합니다. 
-    UFUNCTION(BlueprintCallable, Category = "Combat")
-    void ResetCombatStates();
+    virtual void ResetCombatStates() override;
+    
+    // 플레이어가 움직일(Walk) 수 있는 상태인지에 대한 플래그
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Status")
+    bool IsPlayerCanMove();
 
     // 플레이어 콤보 관련 타이머 관리자
     FTimerHandle ComboTimerHandle;

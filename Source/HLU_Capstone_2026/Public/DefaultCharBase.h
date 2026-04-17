@@ -90,9 +90,7 @@ protected:
 
 	// 공격 박스 Overlap 이벤트, 공격한 적에 대한 충돌 판정 및 필터링 수행, 일반적으로 기본 공격에 해당되는 공격에만 사용
 	UFUNCTION()
-	void OnAttackBoxOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
-		bool bFromSweep, const FHitResult& SweepResult);
+	void OnAttackBoxOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	// 공격한 적에 대한 연산 수행, 피해 액터, 공격 타입, 공격 배수를 지정합니다. 기본공격 외 다양한 공격 패턴에서 호출하여 사용 가능
 	UFUNCTION(BlueprintCallable, Category = "Comabat")
@@ -179,6 +177,10 @@ protected:
 
 // 이동/회피 관련 함수/변수
 protected:
+	// 캐릭터의 레이어 정렬 수치, 스프라이트의 y축 값을 좌,우에 따라 더해 높은 갚을 가진 스프라이트가 앞에 보이도록 만드는 역할을 함
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layer_Sort")
+	float SpriteLayerSortAmount = 0.0f;
+
 	// 캐릭터가 회피상태인지 판단
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
 	bool bIsDodging = false;
@@ -221,6 +223,10 @@ protected:
 	// 캐릭터의 지면마찰력 저장 변수
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	float SavedGroundFriction;
+
+	// 캐릭터의 이동방향에 따른 SpriteSortAmount 적용 함수, 스프라이트 컴포넌트의 상대위치를 약간 당겨 더 앞에 보이도록 만드는 함수
+	UFUNCTION(BlueprintCallable, Category = "Sort")
+	void ApplySpriteSortAmount();
 
 // 가드 관련 함수/변수
 protected:
@@ -272,7 +278,7 @@ protected:
 	bool bIsGuardBlockOnlyOneHit = false;
 
 	// 가드 후 마찰력을 원래대로 돌려두는 전용 함수 
-	void RestoreGuardPhysics();
+	void RestoreGuardState();
 
 // 기타 추가 기능
 protected:
@@ -295,6 +301,10 @@ protected:
 	// 캐릭터가 행동 가능한 상태라면 true, 아니라면 false 반환합니다. 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Status")
 	virtual bool IsCharacterCanAction();
+
+
+	UFUNCTION(BlueprintCallable, Category = "Status")
+	virtual void ResetCombatStates();
 
 // VFX 및 오디오
 protected:

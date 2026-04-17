@@ -28,7 +28,7 @@ void UHealthComponent::ReduceHealth(const float DamageAmount)
     // 델리게이트를 통해 체력 변경 알림 (UI 갱신용)
     OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
 
-    UE_LOG(LogTemp, Warning, TEXT("C++: Got Damaged %2.f, Remain HP: %.2f"), DamageAmount, CurrentHealth);
+    UE_LOG(LogTemp, Warning, TEXT("HP Comp: Got Damaged %2.f, Remain HP: %.2f"), DamageAmount, CurrentHealth);
 
     // 체력이 0이 되면 사망 처리
     if (CurrentHealth <= 0.f)

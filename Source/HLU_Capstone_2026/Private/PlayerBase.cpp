@@ -59,13 +59,13 @@ void APlayerBase::Tick(float DeltaTime)
         ChangeGravity();
 
         // 벽타기 기능 함수
-        if (bCanClimbWall)
+        if (bCanClimbWall && !bIsAirAttacking)
         {
             CheckWall();
         }
     }
 
-    // 회피효과 관련 Tick 검사
+    // 회피효과(고스트트레일 스폰) 관련 Tick 검사
     if (bIsDodging && LastGhostSpawnLocation != FVector::Zero())
     {   
         FVector CurrentLocation = GetActorLocation();
@@ -81,6 +81,9 @@ void APlayerBase::Tick(float DeltaTime)
             LastGhostSpawnLocation = CurrentLocation; // 마지막 스폰 위치 갱신
         }
     }
+
+    // 플레이어 정렬 적용(스프라이트를 SpriteSortAmount만큼 앞으로 땡기기)
+    ApplySpriteSortAmount();
 }
 
 void APlayerBase::RestAtCheckpoint_Implementation(float HealPercentage)
@@ -245,9 +248,30 @@ bool APlayerBase::CanAttackTarget(AActor* Target) const
     return TagInterface->HasMatchingGameplayTag(EnemyTag) || TagInterface->HasMatchingGameplayTag(DestructibleTag);
 }
 
+void APlayerBase::ExecuteAttackHit(AActor* TargetActor, TSubclassOf<class UCustomDamageType> DamageType, float DamageMultiplier)
+{
+    Super::ExecuteAttackHit(TargetActor, DamageType, DamageMultiplier);
+
+    if (!MovementComp)
+    {
+        return;
+    }
+
+    // y축 이동을 즉시 중단, 버그 관리용
+    MovementComp->Velocity.Y = 0.f;
+
+    if (abs(MovementComp->Velocity.X) > 0)
+    {
+        float ReducedXVelocity = MovementComp->Velocity.X / 4.0f;
+        MovementComp->Velocity.X = ReducedXVelocity;
+        UE_LOG(LogTemp, Warning, TEXT("Player: Reduce Velocity after attack, Velocity: %.2f"), ReducedXVelocity);
+    }
+}
+
 void APlayerBase::AirDefaultAttack()
 {
     //UE_LOG(LogTemp, Warning, TEXT("Air Default Attack Called"));
+    bIsAirAttacking = true;
 
     // 공중 일반공격 애니메이션 재생
     PlayDefaultAirAttackAnimation();
@@ -256,6 +280,7 @@ void APlayerBase::AirDefaultAttack()
 void APlayerBase::AirDownwardAttack()
 {   
     //UE_LOG(LogTemp, Warning, TEXT("Air Downward Attack Called"));
+    bIsAirAttacking = true;
 
     // 공중 공격 시 약간의 공중 체공 기능
     /*FVector CurrentVelocity = MovementComp->Velocity;
@@ -391,7 +416,7 @@ void APlayerBase::FullResetCombo()
     //bIgnoreSaveAttack = true; 이건 여기서 바뀌면 안되서 EndAttackState에서 호출합니다. 
     ComboCount = 0;
 
-    UE_LOG(LogTemp, Warning, TEXT("PlayerBase Reset All Attack State"));
+    //UE_LOG(LogTemp, Warning, TEXT("PlayerBase Reset All Attack State"));
 }
 
 bool APlayerBase::GetHit(const FDamageData& DamageData)
@@ -420,9 +445,7 @@ bool APlayerBase::GetHit(const FDamageData& DamageData)
 
     // 모든 공격 플래그 강제 리셋
     EndAttackState();   // 공격 상태 false로 전환 및 연계 가능 구간 플래그 초기화
-    bSaveAttack = false;    // 선입력된 공격 중단
-    bIsWaitNextAttackInput = false; // 대기시간 중 입력된 공격 중단 
-    ComboCount = 0; // 콤보 초기화
+    FullResetCombo();
 
     // 모든 회피/가드 플래그 리셋 (버그 방지용)
     ResetCombatStates();
@@ -941,9 +964,9 @@ void APlayerBase::OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAd
     FixHeightAdjust = HalfHeightAdjust * 0.95;
 
     // 캐릭터 스프라이트 위치 보정
-    if (UPaperFlipbookComponent* VisualComp = GetSprite())
+    if (FlipbookComp)
     {
-        VisualComp->AddLocalOffset(FVector(0.0f, 0.0f, FixHeightAdjust));
+        FlipbookComp->AddLocalOffset(FVector(0.0f, 0.0f, FixHeightAdjust));
     }
 
     // 스프링 암 보정
@@ -963,9 +986,9 @@ void APlayerBase::OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdju
     // 카메라 및 스프라이트 위치보정값
     FixHeightAdjust = FixHeightAdjust * -1;
 
-    if (UPaperFlipbookComponent* VisualComp = GetSprite())
+    if (FlipbookComp)
     {
-        VisualComp->AddLocalOffset(FVector(0.0f, 0.0f, FixHeightAdjust));
+        FlipbookComp->AddLocalOffset(FVector(0.0f, 0.0f, FixHeightAdjust));
     }
 
     if (USpringArmComponent* SpringArm = FindComponentByClass<USpringArmComponent>())
@@ -1049,6 +1072,11 @@ void APlayerBase::GuardStart()
     // 플레이어의 입력 방향으로 즉시 전환
     UpdateFacingDirection();
 
+    // 가드 도중 움직임 제한
+    bIsMoveLockedWhileGuarding = true;
+
+    UE_LOG(LogTemp, Warning, TEXT("PlayerBase: EndGuardCalled!, bIsMoveLockedWhileGuarding is True"));
+
     // 가드 도중 마찰력 크게 증가
     if (MovementComp)
     {
@@ -1060,7 +1088,10 @@ void APlayerBase::EndGuard()
 {
     Super::EndGuard();
 
-    //UE_LOG(LogTemp, Warning, TEXT("C++ PlayerBase: EndGuardCalled!"));
+    // 가드가 성공했어도, 가드가 종료되어야 움직임 가능
+    bIsMoveLockedWhileGuarding = false;
+
+    UE_LOG(LogTemp, Warning, TEXT("PlayerBase: EndGuardCalled!, bIsMoveLockedWhileGuarding is False"));
 }
 
 void APlayerBase::ResetGuardCooldown()
@@ -1206,16 +1237,15 @@ bool APlayerBase::IsCharacterCanAction()
 }
 
 void APlayerBase::ResetCombatStates()
-{
+{   
+    // 부모클래스에서 정의된 함수/변수/타이머는 DefaultCharBase에서 정리
+    Super::ResetCombatStates();
+
     // 1. 회피 관련 플래그 및 자원 카운트 강제 초기화
-    bIsDodging = false;
     bSaveDodge = false;
-    bCanDodge = true;
     bIsMoveLockedWhileDodging = false;
     CurrentAirDashCount = 0;
     MovementComp->GravityScale = PlayerGravity;
-    GetWorldTimerManager().ClearTimer(DodgeTimerHandle);
-    GetWorldTimerManager().ClearTimer(DodgeCooldownTimerHandle);
     GetWorldTimerManager().ClearTimer(MomentumTimerHandle);
     
     // 2. 이동/점프 관련 플래그 및 자원 카운트 초기화
@@ -1223,20 +1253,19 @@ void APlayerBase::ResetCombatStates()
     bSaveJump = false;
     CurrentJumpCount = 0;
     GetWorldTimerManager().ClearTimer(WallJumpLockoutTimerHandle);
-    MovementComp->GroundFriction = SavedGroundFriction;
 
     // 3. 가드 관련 플래그 초기화
-    bIsGuarding = false;
     bSaveGuard = false;
-    bIsGuardSuccess = false;
-    bCanGuard = false;
-    GetWorldTimerManager().ClearTimer(GuardTimerHandle);
-    GetWorldTimerManager().ClearTimer(GuardCooldownTimerHandle);
-    GetWorldTimerManager().ClearTimer(GuardRecoilTimerHandle);
+    bIsMoveLockedWhileGuarding = false;
 
     // HitInvincibleTimerHandle 이건 초기화 안합니다. 이 함수가 맞을때 호출되는거라서
+    // UE_LOG(LogTemp, Warning, TEXT("PlayerBase: Reset All Dodge/Guard State"));
+}
 
-    UE_LOG(LogTemp, Warning, TEXT("PlayerBase Reset All Dodge/Guard State"));
+bool APlayerBase::IsPlayerCanMove()
+{
+    bool bIsCanMove = !(!IsCharacterCanAction() || bIsAttacking || bIsMoveLockedWhileDodging || bIsMoveLockedWhileGuarding || bIsWallJumpInputLocked);
+    return bIsCanMove;
 }
 
 void APlayerBase::SpawnGhostTrail()
