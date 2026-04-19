@@ -21,6 +21,7 @@ public:
 protected:
     virtual void BeginPlay() override;
 
+// 컴포넌트 생성
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     class USphereComponent* PickupRange;
@@ -32,22 +33,7 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Item_Events")
     FOnItemPickedUpSignature OnItemPickedUp;
 
-public:
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item_Info")
-    FPilgrimItemData ItemData;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item_Info")
-    FGameplayTag PickupTag;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item_Info")
-    class UNiagaraSystem* IdleEffect;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item_Info", meta = (ClampMin = "0.0"))
-    float DestroyDelay = 0.2f;
-
-    UPROPERTY(BlueprintReadOnly, Category = "Item_Info")
-    bool bPlayerInRange = false;
-
+// 인터페이스 구현
 public:
     // IRootable 인터페이스 구현
     virtual void OnPickedUp_Implementation(AActor* Picker) override;
@@ -56,7 +42,17 @@ public:
     // HandleInteractInput에서 호출 - bPlayerInRange 체크 후 습득 처리
     virtual void TryPickup_Implementation(AActor* Picker) override;
 
+// 아이템 정보 및 상태
 protected:
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item_Info")
+    FPilgrimItemData ItemData;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item_Info", meta = (ClampMin = "0.0"))
+    float DestroyDelay = 0.2f;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Item_Info")
+    bool bPlayerInRange = false;
+
     UFUNCTION()
     void OnPickupRangeBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
         UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
@@ -68,8 +64,6 @@ protected:
 
     void ExecutePickup(AActor* Picker);
 
-    void DestroyAfterEffect();
-
     UFUNCTION(BlueprintImplementableEvent, Category = "Item")
     void ShowPickupHint();
 
@@ -78,5 +72,17 @@ protected:
 
     bool bIsPickedUp = false;
 
+// 아이템 효과
+protected:
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item_VFX")
+    FGameplayTag PickupTag;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item_VFX")
+    class UNiagaraSystem* IdleEffect;
+
+    void DestroyAfterEffect();
+
+// 기타 기능
+protected:
     FTimerHandle DestroyTimerHandle;
 };

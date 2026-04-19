@@ -12,6 +12,9 @@
 #include "GhostActor.h"
 #include "InteractReceiver.h"
 #include "Rootable.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
 
 APlayerBase::APlayerBase()
 {
@@ -31,6 +34,11 @@ APlayerBase::APlayerBase()
 
     // 캐릭터가 않은 상태에서도 절벽 아래로 떨어질 수 있도록 조정(슬라이딩 시 떨어짐 허용)
     GetCharacterMovement()->bCanWalkOffLedgesWhenCrouching = true;
+
+    // 나이아가라 컴포넌트 생성
+    PlayerTrackingNiagaraVFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("PlayerTrackingVFX"));
+    PlayerTrackingNiagaraVFX->SetupAttachment(GetSprite());
+    PlayerTrackingNiagaraVFX->bAutoActivate = false;
 }
 
 void APlayerBase::BeginPlay()
@@ -87,7 +95,16 @@ void APlayerBase::Tick(float DeltaTime)
 }
 
 void APlayerBase::RestAtCheckpoint_Implementation(float HealPercentage)
-{   
+{       
+    // 이미 상호작용중이라면 반환
+    if (bIsInteracting)
+    {
+        return;
+    }
+    
+    // 상호작용 플래그 전환
+    bIsInteracting = true;
+
     // 체력 회복
     if (HealthComponent)
     {
@@ -98,7 +115,10 @@ void APlayerBase::RestAtCheckpoint_Implementation(float HealPercentage)
     // 포션 재공급
     CurrentPotionCount = MaxPotionCount;
 
-    UE_LOG(LogTemp, Warning, TEXT("Player: Rested at Checkpoint!"));
+    // 나이아가라 이펙트 스폰
+    PlayNiagaraCompEffect(RestCheckpointEffect);
+
+    UE_LOG(LogTemp, Warning, TEXT("Player: Rested at Checkpoint! Heal HP and Potion"));
 }
 
 void APlayerBase::RegisterNearbyItem_Implementation(AActor* Item)
@@ -142,8 +162,8 @@ void APlayerBase::HandleInteractInput()
             FVector RelativeOffset = Midpoint - GetActorLocation();
             RelativeOffset.Z = OriginSocketOffset.Z - 20.f;
 
-            // 상호작용 상태 돌입
-            bIsInteracting = true;
+            // 상호작용 상태 돌입 -> 상호작용 상태 돌입은 IntertableBase의 인터페이스 호출로 인한 함수에서 플래그 전환
+            // bIsInteracting = true;
 
             // 카메라 줌 인 기능 시작
             PlayInteractCameraZoomIn(RelativeOffset, Target);
@@ -1309,6 +1329,26 @@ void APlayerBase::SpawnGhostTrail()
             }
         }
     }
+}
+
+void APlayerBase::PlayNiagaraCompEffect(UNiagaraSystem* NewEffect)
+{
+    if (!NewEffect || !PlayerTrackingNiagaraVFX)
+    {   
+        UE_LOG(LogTemp, Warning, TEXT("Player: No Niagara to spawn!"));
+        return;
+    }
+
+    // 재생중인 이펙트 종료
+    PlayerTrackingNiagaraVFX->Deactivate();
+
+    // 나이라가라 이펙트 전환
+    PlayerTrackingNiagaraVFX->SetAsset(NewEffect);
+
+    // 교체 이펙트 처음부터 재생
+    PlayerTrackingNiagaraVFX->Activate(true);
+
+    UE_LOG(LogTemp, Warning, TEXT("Player: Niagara Activated!"));
 }
 
 //댕글링 포인터 크래시 방지

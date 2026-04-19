@@ -59,6 +59,9 @@ protected:
 	// 캐릭터 페이퍼 플릭북 컴포넌트
 	class UPaperFlipbookComponent* FlipbookComp = nullptr;
 
+	// 캐릭터의 스프라이트 상대 위치 저장 변수(정렬을 위해 사용)
+	FVector CurrentRelativeLoc;
+
 // 공격 기능 함수/변수 -------------------
 protected:
 	// 공격이 시작될 때, 공격이 가능한지 확인하는 함수, 호출될 때 공격이 가능하면 공격, 아닐경우 공격하지 않습니다. 자식 클래스에서 재정의 가능
@@ -319,5 +322,4 @@ protected:
 	// 가드시 발생하는 나이아가라 시스템 할당 변수
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "VFX")
 	class UNiagaraSystem* GuardEffect = nullptr;
-
 };

@@ -68,6 +68,10 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
     TObjectPtr<class UCameraComponent> MainCamera;
 
+    // 지속형 나이아가라 컴포넌트
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_VFX")
+    class UNiagaraComponent* PlayerTrackingNiagaraVFX;
+
 // 공격 기능 함수/변수 --------------------------------------
 protected:
     // 상속받은 TryAttack 오버라이드
@@ -83,82 +87,82 @@ protected:
     virtual void ExecuteAttackHit(AActor* TargetActor, TSubclassOf<class UCustomDamageType> DamageType, float DamageMultiplier = 1.0f) override;
 
     // HitStop(역경직) 적용 시간
-    UPROPERTY(EditDefaultsOnly, Category = "Combat")
+    UPROPERTY(EditDefaultsOnly, Category = "Combat_Player_Attack")
     float HitStopTime = 0.05f;
 
     // HitStop(역경직) 감속 계수
-    UPROPERTY(EditDefaultsOnly, Category = "Combat")
+    UPROPERTY(EditDefaultsOnly, Category = "Combat_Player_Attack")
     float HitStopDilation = 0.05f;
 
     // 공격 시 전진 거리
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat_Player_Attack")
     float AttackStepForce = 500.f;
 
     // AttackStepForce 반환 함수
-    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Combat")
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Combat_Player_Attack")
     float GetAttackStepForce() { return AttackStepForce; }
 
     // 달리는 도중 공격 시 전진거리 배율
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat_Player_Attack")
     float AttackStepForceMultiplierWhileRun = 2.0f;
 
     // 공격 시작 전 당시의 속도 저장 변수
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat_Player_Attack")
     float SavedAttackSpeed;
 
-    UFUNCTION(BlueprintCallable, Category = "Combat")
+    UFUNCTION(BlueprintCallable, Category = "Combat_Player_Attack")
     // 공중일반공격 수행 함수
     void AirDefaultAttack();
 
-    UFUNCTION(BlueprintCallable, Category = "Combat")
+    UFUNCTION(BlueprintCallable, Category = "Combat_Player_Attack")
     // 공중아래공격 수행 함수
     void AirDownwardAttack();
 
     // 플레이어의 공중일반공격 애니메이션 재생 함수
-    UFUNCTION(BlueprintImplementableEvent, Category = "Combat")
+    UFUNCTION(BlueprintImplementableEvent, Category = "Combat_Player_Attack")
     void PlayDefaultAirAttackAnimation();
 
     // 플레이어의 공중하단공격 애니메이션 재생 함수
-    UFUNCTION(BlueprintImplementableEvent, Category = "Combat")
+    UFUNCTION(BlueprintImplementableEvent, Category = "Combat_Player_Attack")
     void PlayDownwardAirAttackAnimation();
 
     // 플레이어의 공중 공격 플래그
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat_Player_Attack")
     bool bIsAirAttacking = false;
 
 public:
     // 플레이어의 애니메이션 강제종료 함수
-    UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "Combat")
+    UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "Player_Animation")
     void StopAnimationOverride();
 
 // 플레이어 콤보 공격 관련 --------------------------------------
 protected:
     // 플레이어 콤보 연계가 가능하도록 전환 (ABP의 노티파이에서 호출함)
-    UFUNCTION(BlueprintCallable, Category = "Combat")
+    UFUNCTION(BlueprintCallable, Category = "Combat_Player_Attack")
     void CheckCombo();
 
     // 플레이어의 콤보공격이 연계/취소되었을때 및 공격 도중의 선입력 관리
-    UFUNCTION(BlueprintCallable, Category = "Combat")
+    UFUNCTION(BlueprintCallable, Category = "Combat_Player_Attack")
     void ResetCombo();
 
     // 현재 플레이어의 공격 타수
-    UPROPERTY(BlueprintReadOnly, Category = "Combat")
+    UPROPERTY(BlueprintReadOnly, Category = "Combat_Player_Attack")
     int32 ComboCount = 0;
 
     // 공격 연계 타이밍 이전의 연계 입력은 무시하기 위한 트리거
-    UPROPERTY(BlueprintReadOnly, Category = "Combat")
+    UPROPERTY(BlueprintReadOnly, Category = "Combat_Player_Attack")
     bool bIgnoreSaveAttack = true;
 
     // 공격 도중 버튼을 또 눌렀는지 판단, 애니메이션 노티파이와 함께 사용(AS_Player), 애니메이션 도중의 입력 판단에 사용됩니다. 
-    UPROPERTY(BlueprintReadOnly, Category = "Combat")
+    UPROPERTY(BlueprintReadOnly, Category = "Combat_Player_Attack")
     bool bSaveAttack = false; 
 
     // 첫 번째 공격 이후 몇초간 콤보를 이어갈 입력을 받는지 정의
-    UPROPERTY(EditDefaultsOnly, Category = "Combat")
+    UPROPERTY(EditDefaultsOnly, Category = "Combat_Player_Attack")
     float SecondAttackWaitTime = 0.2f;
 
     // 첫 번째 공격 이후 공격 대기상태 판단, 애니메이션 종료 후 입력 판단에 사용됩니다. 
-    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat_Player_Attack")
     bool bIsWaitNextAttackInput = false;
 
     // 일반공격/피격 이후 상태 복구 함수 (부모 클래스 함수 재사용), 각 공격에 대한 종료를 정의
@@ -166,7 +170,7 @@ protected:
 
     // Idle<->AttackWait 상태전환 전달용 함수
 public:
-    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Combat")
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Combat_Player_Attack")
     bool IdleAttackWaitTrasitionFlag();
 
 private:
@@ -179,7 +183,7 @@ protected:
     virtual bool GetHit(const FDamageData& DamageData) override;
 
     // 플레이어 피격무적 시간 변수
-    UPROPERTY(EditDefaultsOnly, Category = "Combat")
+    UPROPERTY(EditDefaultsOnly, Category = "Combat_Player_Hit")
     float HitInvincibleTime = 1.0f;
 
 // 플레이어 이동/회피 관련 함수/변수 --------------------------------------
@@ -212,7 +216,7 @@ protected:
     void ExcuteDoubleJump();
 
     // 애니메이션 노티파이에서 호출할 전진 스텝 함수 
-    UFUNCTION(BlueprintCallable, Category = "Combat")
+    UFUNCTION(BlueprintCallable, Category = "Combat_Player_Attack")
     void StepForward(float StepForce = 200.0f);
 
     // 플레이어가 점프를 눌렀는지에 대한 플래그
@@ -224,18 +228,18 @@ protected:
     bool bSaveJump = false;
 
     // 플레이어 회피 시 전진성
-    UPROPERTY(EditDefaultsOnly, Category = "Combat")
+    UPROPERTY(EditDefaultsOnly, Category = "Combat_Player_Dodge")
     float DodgeVelocity = 500.0f;
     
     // 플레이어 공중대시 플래그 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat")
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat_Player_Dodge")
     bool bCanAirDash = false;
 
     // 플레이어의 기본 중력 적용값
     float PlayerGravity = 1.0f;
 
     // 플레이어 공중대시 최대 사용 횟수
-    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat")
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat_Player_Dodge")
     int32 MaxAirDashCount = 1;
 
     // 플레이어의 현재 공중대시 사용 횟수
@@ -266,22 +270,22 @@ protected:
     virtual void ResetDodgeCooldown() override;
 
     // 플레이어 회피 추진력 전달 함수 
-    UFUNCTION(BlueprintCallable, Category = "Combat")
+    UFUNCTION(BlueprintCallable, Category = "Combat_Player_Dodge")
     void AddVelocityWhileDodging();
 
     // 회피 애니메이션 중 입력 제한 플래그
-    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat_Player_Dodge")
     bool bIsMoveLockedWhileDodging = false;
 
     // 회피 선입력 예약 플래그
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat_Player_Dodge")
     bool bSaveDodge = false;
 
     // 플레이어 회피 이후 속력 유지 및 감속 타이머, 대시 이후 플레이어의 속도를 잠시 증가시키고 천천히 감속시키는 타이머에 사용됨
     void DecelerateMomentum();
 
     // 회피 이후 재입력 허용 플래그 전환 함수
-    UFUNCTION(BlueprintCallable, Category = "Combat")
+    UFUNCTION(BlueprintCallable, Category = "Combat_Player_Dodge")
     void UnlockMoveInputAfterDodge();
 
     // 플레이어 입력값 저장 변수
@@ -340,7 +344,7 @@ protected:
     virtual void EndGuard() override;
 
     // 가드 선입력 유효 시간 (회피 0.2s보다 짧은 0.1s 추천)
-    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat")
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Comat_Player_Guard")
     float GuardBufferTime = 0.1f;
 
     // 가드 선입력 플래그
@@ -350,7 +354,7 @@ protected:
     virtual void ResetGuardCooldown() override;
 
     // 플레이어의 가드 시 움직임 봉인 플래그
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat_Player_Guard")
     bool bIsMoveLockedWhileGuarding = false;
 
 // 플레이어 벽타기 관련 함수/변수 --------------------------------------
@@ -411,7 +415,7 @@ protected:
     void UsePotion();
 
     // 플레이어 부활 위치
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_Reseurrect")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_Interaction")
     FVector CurrentRespawnLocation = FVector::Zero();
 
 public:
@@ -422,15 +426,15 @@ public:
 // 플레이어 상호작용 관련 함수/변수 --------------------------------------
 protected:
     // 플레이어 상호작용 플래그
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_Interaction")
     bool bIsInteracting = false;
 
     // 기본 카메라 스프링 암 길이 저장 변수
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_Interaction")
     float OriginArmLength;
 
     // 기본 카메라 스프링 오프셋 저장 변수
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_Interaction")
     FVector OriginSocketOffset;
 
     // 상호작용 대상의 포인터를 받아 카메라 연출 시작
@@ -442,7 +446,7 @@ protected:
     void PlayInteractCameraZoomOut();
 
     // 상호작용 강제 중단(Escape)
-    UFUNCTION(BlueprintCallable, Category = "Interaction")
+    UFUNCTION(BlueprintCallable, Category = "Player_Interaction")
     void CancelInteraction();
 
 // 기타 추가 기능 --------------------------------------
@@ -455,7 +459,7 @@ protected:
     virtual void ResetCombatStates() override;
     
     // 플레이어가 움직일(Walk) 수 있는 상태인지에 대한 플래그
-    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Status")
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Player_Status")
     bool IsPlayerCanMove();
 
     // 플레이어 콤보 관련 타이머 관리자
@@ -475,14 +479,22 @@ protected:
     // 회피 잔상 스폰 함수
     void SpawnGhostTrail();
 
+    // 나이아가라 컴포넌트에서 이펙트 실행시키는 함수
+    UFUNCTION(BlueprintCallable, Category = "Player_VFX")
+    void PlayNiagaraCompEffect(UNiagaraSystem* NewEffect);
+
     // 잔상 액터
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "VFX")
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player_VFX")
     TSubclassOf<class AGhostActor> GhostActorClass;
 
     // 잔상 스폰 간격
-    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "VFX")
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player_VFX")
     float GhostSpawnDistnaceThreshold = 100.0f;
 
     // 마지막으로 잔상을 소환한 장소
     FVector LastGhostSpawnLocation = FVector::Zero();
+
+    // 휴식시의 나이아가라 시스템 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player_VFX")
+    class UNiagaraSystem* RestCheckpointEffect = nullptr;
 };

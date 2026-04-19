@@ -43,6 +43,24 @@ void ABaseItem::BeginPlay()
     }
 }
 
+void ABaseItem::OnPickedUp_Implementation(AActor* Picker)
+{
+    ExecutePickup(Picker);
+}
+
+void ABaseItem::OnUsed_Implementation(AActor* User)
+{
+    UE_LOG(LogTemp, Warning, TEXT("Item: [%s] used by %s"), *ItemData.ItemName, *GetNameSafe(User));
+}
+
+void ABaseItem::TryPickup_Implementation(AActor* Picker)
+{
+    // 범위 밖이거나 이미 습득한 경우 무시
+    if (!bPlayerInRange || bIsPickedUp) return;
+
+    ExecutePickup(Picker);
+}
+
 void ABaseItem::OnPickupRangeBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
     // 태그로 플레이어인지 확인
@@ -89,14 +107,6 @@ void ABaseItem::OnPickupRangeEndOverlap(UPrimitiveComponent* OverlappedComp, AAc
     }
 }
 
-void ABaseItem::TryPickup_Implementation(AActor* Picker)
-{
-    // 범위 밖이거나 이미 습득한 경우 무시
-    if (!bPlayerInRange || bIsPickedUp) return;
-
-    ExecutePickup(Picker);
-}
-
 void ABaseItem::ExecutePickup(AActor* Picker)
 {
     // 중복 습득 방지
@@ -137,12 +147,3 @@ void ABaseItem::DestroyAfterEffect()
     Destroy();
 }
 
-void ABaseItem::OnPickedUp_Implementation(AActor* Picker)
-{
-    ExecutePickup(Picker);
-}
-
-void ABaseItem::OnUsed_Implementation(AActor* User)
-{
-    UE_LOG(LogTemp, Warning, TEXT("Item: [%s] used by %s"), *ItemData.ItemName, *GetNameSafe(User));
-}

@@ -13,7 +13,9 @@ void ACheckpointBase::BeginPlay()
 
 void ACheckpointBase::OnInteract_Implementation(AActor* Interactor)
 {
-    Super::OnInteract_Implementation(Interactor);
+    // Super::OnInteract_Implementation(Interactor);
+
+    UE_LOG(LogTemp, Warning, TEXT("Checkpoint: OnInteract Called, %s"), *GetName());
 
     // 처음 상호작용이면 체크포인트 활성화
     if (!bIsActivated)
@@ -36,10 +38,10 @@ void ACheckpointBase::ActivateCheckpoint(AActor* Interactor)
     PlayActivateEffect();
 
     // 나이아가라 이펙트 켜기
-    if (InteractEffect)
+    /*if (InteractEffect)
     {
         InteractEffect->Activate(true);
-    }
+    }*/
 
     UE_LOG(LogTemp, Warning, TEXT("Checkpoint: Activated!"));
 }

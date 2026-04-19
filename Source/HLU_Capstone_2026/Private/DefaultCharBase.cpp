@@ -423,6 +423,7 @@ bool ADefaultCharBase::GetHit(const FDamageData& DamageData)
         IDamageable::Execute_ReceiveDamage(this, DamageData.DamageAmount);
     }
 
+    // 피격되었으므로, true 리턴
     return true;
 }
 
@@ -503,7 +504,7 @@ void ADefaultCharBase::ApplySpriteSortAmount()
     if (FlipbookComp)   
     {   
         // 현재 스프라이트의 로컬 위치 가져오기
-        FVector CurrentRelativeLoc = FlipbookComp->GetRelativeLocation();
+        CurrentRelativeLoc = FlipbookComp->GetRelativeLocation();
 
         if (GetActorForwardVector().X >= 0)
         {
