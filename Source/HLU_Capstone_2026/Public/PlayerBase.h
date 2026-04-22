@@ -462,6 +462,9 @@ protected:
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Player_Status")
     bool IsPlayerCanMove();
 
+    // 플레이어 스프라이트 정렬 알고리즘
+    virtual void ApplySpriteSortAmount() override;
+
     // 플레이어 콤보 관련 타이머 관리자
     FTimerHandle ComboTimerHandle;
 

@@ -102,9 +102,6 @@ void APlayerBase::RestAtCheckpoint_Implementation(float HealPercentage)
         return;
     }
     
-    // 상호작용 플래그 전환
-    bIsInteracting = true;
-
     // 체력 회복
     if (HealthComponent)
     {
@@ -170,6 +167,10 @@ void APlayerBase::HandleInteractInput()
 
             // 타겟의 기능 실행
             IInteractReceiver::Execute_TryInteract(Target, this);
+
+            // 상호작용 플래그 전환
+            bIsInteracting = true;
+
             return;
         }
     }
@@ -1286,6 +1287,30 @@ bool APlayerBase::IsPlayerCanMove()
 {
     bool bIsCanMove = !(!IsCharacterCanAction() || bIsAttacking || bIsMoveLockedWhileDodging || bIsMoveLockedWhileGuarding || bIsWallJumpInputLocked);
     return bIsCanMove;
+}
+
+void APlayerBase::ApplySpriteSortAmount()
+{
+    Super::ApplySpriteSortAmount();
+
+    if (PlayerTrackingNiagaraVFX)
+    {
+        CurrentRelativeLoc = PlayerTrackingNiagaraVFX->GetRelativeLocation();
+
+        if (GetActorForwardVector().X >= 0)
+        {
+            // 우측(앞)을 볼 때는 기본 오프셋
+            CurrentRelativeLoc.Y = SpriteLayerSortAmount + 10.0f;
+        }
+        else
+        {
+            // 좌측(뒤)을 볼 때는 로컬 Y축도 180도 돌아갔으므로 마이너스로 상쇄
+            CurrentRelativeLoc.Y = -SpriteLayerSortAmount - 10.0f;
+        }
+
+        // 상대위치 적용 
+        PlayerTrackingNiagaraVFX->SetRelativeLocation(CurrentRelativeLoc);
+    }
 }
 
 void APlayerBase::SpawnGhostTrail()

@@ -229,7 +229,7 @@ protected:
 
 	// 캐릭터의 이동방향에 따른 SpriteSortAmount 적용 함수, 스프라이트 컴포넌트의 상대위치를 약간 당겨 더 앞에 보이도록 만드는 함수
 	UFUNCTION(BlueprintCallable, Category = "Sort")
-	void ApplySpriteSortAmount();
+	virtual void ApplySpriteSortAmount();
 
 // 가드 관련 함수/변수
 protected:
