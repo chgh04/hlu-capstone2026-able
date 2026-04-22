@@ -211,6 +211,8 @@ bool AEnemyBase::GetHit(const FDamageData& DamageData)
         // 현재 캐릭터의 물리적 속도를 제거 (이건 선택사항)
         GetCharacterMovement()->StopMovementImmediately();
 
+        // 캐릭터의 공격 판정 즉시 중단 
+
         // Hit 플래그 활성화 및 공격 로직 초기화 (지면마찰력 초기화)
         bIsHit = true;
         EndAttackState();

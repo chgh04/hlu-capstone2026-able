@@ -576,7 +576,7 @@ void APlayerBase::TryJump()
     // 5. 점프 전 함수 호출 당시의 수직 제외 수평 속도만 추출 및 최대 허용 속도 지정
     float XVelocity = MovementComp->Velocity.X;
     FVector HorizontalVelocity = FVector(MovementComp->Velocity.X, MovementComp->Velocity.Y, 0.0f);
-    float MaxAllowedJumpSpeed = SavedPlayerMaxWalkSpeed * 1.15f;    // 허용할 점프 최대 속도
+    float MaxAllowedJumpSpeed = SavedPlayerMaxWalkSpeed * 1.1f;    // 허용할 점프 최대 속도
 
     // 플레이어 적용 속도 계산
     if (HorizontalVelocity.Size() > MaxAllowedJumpSpeed)
