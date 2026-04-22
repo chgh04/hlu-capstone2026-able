@@ -118,6 +118,17 @@ void ABaseItem::ExecutePickup(AActor* Picker)
     // 인벤토리 완성 후 여기에 바인딩
     OnItemPickedUp.Broadcast(ItemData);
 
+    // 획득 이펙트 재생
+    if (PickupBurstEffect)
+    {
+        UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+            GetWorld(),
+            PickupBurstEffect,
+            GetActorLocation(),
+            GetActorRotation()
+        );
+    }
+
     // 콜리전 제거 - 중복 습득 방지
     if (PickupRange)
     {

@@ -80,6 +80,10 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item_VFX")
     class UNiagaraSystem* IdleEffect;
 
+    // 아이템을 획득했을때의 나이아가라 이펙트
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item_VFX")
+    class UNiagaraSystem* PickupBurstEffect;
+
     void DestroyAfterEffect();
 
 // 기타 기능
