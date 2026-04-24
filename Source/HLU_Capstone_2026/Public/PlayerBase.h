@@ -72,6 +72,10 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_VFX")
     class UNiagaraComponent* PlayerTrackingNiagaraVFX;
 
+    // 플레이어를 은은하게 비추는 포인트 라이트
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_VFX")
+    class UPointLightComponent* PlayerLight;
+
 // 공격 기능 함수/변수 --------------------------------------
 protected:
     // 상속받은 TryAttack 오버라이드

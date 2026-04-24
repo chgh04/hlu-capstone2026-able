@@ -19,6 +19,8 @@ AEnemyBase::AEnemyBase()
     DetectionRange->SetupAttachment(RootComponent);
     DetectionRange->SetSphereRadius(DetectionRadius);
     DetectionRange->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore); // 모든 Collision 무시
+    // 이거 안되면 BP에서 플레이어 채널만 overlap
+    DetectionRange->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Overlap);
 }
 
 void AEnemyBase::BeginPlay()

@@ -1,20 +1,22 @@
 #include "PlayerBase.h"
 #include "HealthComponent.h"
-#include "BlueprintGameplayTagLibrary.h"
+#include "InteractReceiver.h"
+#include "Rootable.h"
+#include "GhostActor.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Components/PointLightComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "GameplayTagContainer.h"
+#include "BlueprintGameplayTagLibrary.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
-#include "Kismet/GameplayStatics.h"
 #include "PaperFlipbookComponent.h"
 #include "PaperFlipbook.h"
 #include "PaperSprite.h"
-#include "GhostActor.h"
-#include "InteractReceiver.h"
-#include "Rootable.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
+
 
 APlayerBase::APlayerBase()
 {
@@ -39,6 +41,14 @@ APlayerBase::APlayerBase()
     PlayerTrackingNiagaraVFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("PlayerTrackingVFX"));
     PlayerTrackingNiagaraVFX->SetupAttachment(GetSprite());
     PlayerTrackingNiagaraVFX->bAutoActivate = false;
+
+    // 플레이어 라이트 생성
+    PlayerLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("PlayerLight"));
+    PlayerLight->SetupAttachment(GetSprite());
+    PlayerLight->SetRelativeLocation(FVector(0.f, 0.f, 92.f));
+    PlayerLight->Intensity = 300.0f; 
+    PlayerLight->AttenuationRadius = 250.0f;
+    PlayerLight->CastShadows = false;
 }
 
 void APlayerBase::BeginPlay()
@@ -54,7 +64,6 @@ void APlayerBase::BeginPlay()
         OriginArmLength = CameraString->TargetArmLength;
         OriginSocketOffset = CameraString->SocketOffset;
     }
-
 }
 
 void APlayerBase::Tick(float DeltaTime)
@@ -950,6 +959,9 @@ void APlayerBase::UpdateFacingDirection()
         // 입력이 양수면 0도, 음수면 180도 회전
         FRotator TargetRot = (CurrentRawInputX > 0.f) ? FRotator(0.f, 0.f, 0.f) : FRotator(0.f, 180.f, 0.f);
 
+        // 스프라이트 정렬
+        ApplySpriteSortAmount();
+
         SetActorRotation(TargetRot);
     }
 }
@@ -1295,7 +1307,7 @@ void APlayerBase::ApplySpriteSortAmount()
 {
     Super::ApplySpriteSortAmount();
 
-    if (PlayerTrackingNiagaraVFX)
+    if (PlayerTrackingNiagaraVFX && PlayerLight)
     {
         CurrentRelativeLoc = PlayerTrackingNiagaraVFX->GetRelativeLocation();
 
@@ -1310,8 +1322,21 @@ void APlayerBase::ApplySpriteSortAmount()
             CurrentRelativeLoc.Y = -SpriteLayerSortAmount - 10.0f;
         }
 
-        // 상대위치 적용 
+        // 나이아가라 상대위치 적용 
         PlayerTrackingNiagaraVFX->SetRelativeLocation(CurrentRelativeLoc);
+
+        if (bIsCrouched)
+        {
+            PlayerLight->SetRelativeLocation(FVector(0.0f, CurrentRelativeLoc.Y, 46.0f));
+            return;
+        }
+        if (MovementComp->IsFalling() && !bIsOnWall)
+        {
+            PlayerLight->SetRelativeLocation(FVector(0.0f, CurrentRelativeLoc.Y, 116.0f));
+            return;
+        }
+        PlayerLight->SetRelativeLocation(CurrentRelativeLoc);
+        
     }
 }
 
