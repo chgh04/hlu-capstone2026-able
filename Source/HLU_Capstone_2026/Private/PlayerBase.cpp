@@ -285,7 +285,7 @@ void APlayerBase::ExecuteAttackHit(AActor* TargetActor, TSubclassOf<class UCusto
     {
         float ReducedXVelocity = MovementComp->Velocity.X / 4.0f;
         MovementComp->Velocity.X = ReducedXVelocity;
-        UE_LOG(LogTemp, Warning, TEXT("Player: Reduce Velocity after attack, Velocity: %.2f"), ReducedXVelocity);
+        //UE_LOG(LogTemp, Warning, TEXT("Player: Reduce Velocity after attack, Velocity: %.2f"), ReducedXVelocity);
     }
 }
 
@@ -1270,9 +1270,11 @@ void APlayerBase::ResetCombatStates()
     GetWorldTimerManager().ClearTimer(MomentumTimerHandle);
     
     // 2. 이동/점프 관련 플래그 및 자원 카운트 초기화
+    MovementComp->MaxWalkSpeed = SavedPlayerMaxWalkSpeed;
     bIsJumping = false;
     bSaveJump = false;
     CurrentJumpCount = 0;
+    bIsWallJumpInputLocked = false;
     GetWorldTimerManager().ClearTimer(WallJumpLockoutTimerHandle);
 
     // 3. 가드 관련 플래그 초기화

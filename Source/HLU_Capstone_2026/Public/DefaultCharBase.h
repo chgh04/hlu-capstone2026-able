@@ -134,6 +134,7 @@ protected:
 	virtual bool GetHit(const FDamageData& DamageData);
 
 	// 피격시 경직되는 시간, 적은 경직 플레이어는 무적
+	UPROPERTY(EditAnywhere , Category = "Player/Enemy_Combat")
 	float StunDuration = 0.5f;
 
 	// 피격 애니메이션 강제호출 함수(공격 함수를 덮기 위함, 넉백 면역 시 미호출) !!반드시 부모 BP가 아닌 가장 자식인 BP에서 구현해야 합니다!!

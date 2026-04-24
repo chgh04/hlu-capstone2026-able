@@ -99,8 +99,17 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy_Combat")
     bool bIsHit = false;
 
+    // 디졸브를 사용하지 않을 경우, 사망 후 삭제 대기시간
+    UPROPERTY(EditDefaultsOnly, Category = "Enemy_Status")
+    float DestroyDelayAfterDeath = 1.0f;
+
+    // 액터 삭제 함수 
+    void DestroyEnemy();
+
 // Enemy 이동/회피 관련 함수/변수 -------------------
 protected:
+    // 비행유닛 공기저항
+    float FlyingEnemyFallingLateralFriction = 0.0f;
 
 // 플레이어 감지(AI) 관련 함수/변수 -------------------
 protected:
@@ -188,7 +197,11 @@ private:
 
 // 기타 추가 기능
 protected:
+    // 적 캐릭터가 행동 가능한 상태인지 반환
     virtual bool IsCharacterCanAction() override;
+
+    // 적 캐릭터의 피격후 효과 제외 모든 타이머 및 변수 초기화
+    virtual void ResetCombatStates() override;
 
     // 피격시 Hit 상태 타이머 관리자 
     FTimerHandle HitStunTimerHandle;
@@ -199,16 +212,49 @@ protected:
     // 피격시 메테리얼 초기화 타이머 관리자
     FTimerHandle HitFlashResetTimerHandle;
 
+    // 사망시 디졸브 텍스처 적용 딜레이 타이머 관리자 
+    FTimerHandle DissolveDelayTimerHandle;
+
+    // 디졸브 텍스처를 쓰지 않는 경우에 사용할 삭제 대기 타이머 관리자
+    FTimerHandle DeathDestroyTimerHandle;
+   
 // VFX/오디오 
 protected:
     // 피격 후 번쩍이는 효과 초기화
     void ResetHitFlash();
 
     // 블루프린트에서 M_EnemyHit 머티리얼을 할당할 변수
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Eney_VFX")
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy_VFX")
     class UMaterialInterface* HitMaterial;
 
     // 원래 가지고 있던 머티리얼을 기억해둘 변수
     UPROPERTY()
     class UMaterialInterface* OriginalMaterial;
+
+    // 캐릭터 사망시 디졸브 메테리얼 발생시킬 플래그
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy_VFX")
+    bool bIsDissolveWhenDied = true;
+
+    // 동적으로 파라미터를 변경할 동적 머티리얼
+    UPROPERTY()
+    class UMaterialInstanceDynamic* DissolveMaterial;
+
+    // 사망 후 디졸브가 시작되기까지의 대기 시간 (예: 1초)
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy_VFX")
+    float DissolveDelay = 2.0f;
+
+    // 캐릭터 디졸브 효과 진행 속도, 1이면 1초만에 사라지고 2면 0.5초만에 사라짐
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy_VFX")
+    float DissolveSpeed = 1.0f;
+
+    // 현재 디졸브 수치 (0.0 ~ 1.0)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy_VFX")
+    float CurrentDissolveAmount = 0.0f;
+
+    // 디졸브 진행 상태 플래그
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy_VFX")
+    bool bIsDissolving = false;
+
+    // 사망 대시기간 타이머 이후 호출될 함수
+    void StartDissolve();
 };

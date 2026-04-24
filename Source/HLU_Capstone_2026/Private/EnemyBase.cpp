@@ -8,6 +8,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "PaperFlipbookComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Components/CapsuleComponent.h"
 
 AEnemyBase::AEnemyBase()
 {
@@ -18,8 +19,6 @@ AEnemyBase::AEnemyBase()
     DetectionRange->SetupAttachment(RootComponent);
     DetectionRange->SetSphereRadius(DetectionRadius);
     DetectionRange->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore); // 모든 Collision 무시
-    // 이거 안되면 BP에서 플레이어 채널만 overlap
-    DetectionRange->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECollisionResponse::ECR_Overlap);
 }
 
 void AEnemyBase::BeginPlay()
@@ -32,67 +31,92 @@ void AEnemyBase::BeginPlay()
         DetectionRange->OnComponentBeginOverlap.AddDynamic(this, &AEnemyBase::OnDetectionBeginOverlap);
         DetectionRange->OnComponentEndOverlap.AddDynamic(this, &AEnemyBase::OnDetectionEndOverlap);
         //UE_LOG(LogTemp, Warning, TEXT("AI: AddDynamic Added"));
-        DetectionRange->SetSphereRadius(DetectionRadius);
+        //DetectionRange->SetSphereRadius(DetectionRadius);
     }
 
     // 상태 지정
     CurrentState = EEnemyState::Patrol;
+
+    // 비행 적일 경우 기본 공기저항 저장
+    if (bIsFlyingEnemy)
+    {
+        FlyingEnemyFallingLateralFriction = MovementComp->FallingLateralFriction;
+    }
 }
 
 void AEnemyBase::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    if (!bUseSimpleFSM || bIsDead) return;
+    // 사망시 디졸브 텍스처 적용
+    if (bIsDissolving && DissolveMaterial && bIsDissolveWhenDied)
+    {
+        // 디졸브값을 틱마다 누적
+        CurrentDissolveAmount += DeltaTime * DissolveSpeed;
+
+        // 값이 1을 넘지 않도록 제한
+        CurrentDissolveAmount = FMath::Clamp(CurrentDissolveAmount, 0.0f, 1.0f);
+
+        // 머티리얼에 파라미터 이름 적용
+        DissolveMaterial->SetScalarParameterValue(TEXT("DissolveAmount"), CurrentDissolveAmount);
+
+        if (CurrentDissolveAmount >= 1.0f)
+        {
+            Destroy();
+        }
+    }
+
+    // FSM을 쓰지 않는 경우 리턴 
+    if (!bUseSimpleFSM||bIsDead) return;
 
     //flying모드에서는 중력 무시로 인해 가짜 중력 생성
-    if (bIsFlyingEnemy)
+    if (bIsFlyingEnemy && CurrentState != EEnemyState::Hit)
     {
         FVector CurrentVel = MovementComp->Velocity;
         CurrentVel.Z -= 980.0f * FlyingGravity * DeltaTime;
 
         MovementComp->Velocity = CurrentVel;
     }
-       
+    
+    // 적 캐릭터 상태머신 
     switch (CurrentState)
     {
-    case EEnemyState::Patrol:
-        //UE_LOG(LogTemp, Warning, TEXT("AI: Patrol"));
-        // 순찰 로직 실행 (예: 무작위 위치로 이동), 기본상태
+        case EEnemyState::Patrol:
+            //UE_LOG(LogTemp, Warning, TEXT("AI: Patrol"));
+            // 순찰 로직 실행 (예: 무작위 위치로 이동), 기본상태
         
-        break;
-
-    case EEnemyState::Chase:
-        //UE_LOG(LogTemp, Warning, TEXT("AI: Chase"));
-        // TargetPlayer가 유효한지 확인 후 그쪽으로 이동
-        if (TargetPlayer)
-        {   
-            // 추격 함수
-            ChaseOnSimpleFSM();
-        }
-        break;
-
-    case EEnemyState::Attack:
-        if (!IsCharacterCanAction() || bIsAttacking)
-        {
             break;
-        }
-        //UE_LOG(LogTemp, Warning, TEXT("AI: Attack"));
-        // 이동 멈춤 및 공격 실행
-        TryAttack();
 
-        break;
+        case EEnemyState::Chase:
+            //UE_LOG(LogTemp, Warning, TEXT("AI: Chase"));
+            // TargetPlayer가 유효한지 확인 후 그쪽으로 이동
+            if (TargetPlayer)
+            {   
+                // 추격 함수
+                ChaseOnSimpleFSM();
+            }
+            break;
 
-    case EEnemyState::Hit:
-        //UE_LOG(LogTemp, Warning, TEXT("AI: Hit"));
-        // 넉백 중이므로 아무 행동도 하지 않고 대기 (GetHit 함수에서 타이머 실행됨)
-        break;
+        case EEnemyState::Attack:
+            if (!IsCharacterCanAction() || bIsAttacking)
+            {
+                break;
+            }
+            //UE_LOG(LogTemp, Warning, TEXT("AI: Attack"));
+            // 이동 멈춤 및 공격 실행
+            TryAttack();
+            break;
 
-    case EEnemyState::Dead:
-        //UE_LOG(LogTemp, Warning, TEXT("AI: Dead"));
-        // 이미 죽었으므로 아무것도 하지 않음
+        case EEnemyState::Hit:
+            //UE_LOG(LogTemp, Warning, TEXT("AI: Hit"));
+            // 지상 적은 넉백 중이므로 아무 행동도 하지 않고 대기 (GetHit 함수에서 타이머 실행됨)
 
-        break;
+            break;
+
+        case EEnemyState::Dead:
+            //UE_LOG(LogTemp, Warning, TEXT("AI: Dead"));
+            // 이미 죽었으므로 아무것도 하지 않음
+            break;
     }
 }
 
@@ -100,14 +124,41 @@ void AEnemyBase::OnDeath_Implementation()
 {
     UE_LOG(LogTemp, Warning, TEXT("AI: Enemy OnDeath Called!"));
 
-    // 부모공통로직 실행
+    // 1. 부모공통로직 실행
     Super::OnDeath_Implementation();
-
+    
+    // 2. 상태전환
     CurrentState = EEnemyState::Dead;
     
+    // 3. 사망 애니메이션 재생
     PlayDeathAnimation();
 
-    PrimaryActorTick.bCanEverTick = false;
+    // 4. 공격 판정 박스 끄기 
+    if (AttackBox)
+    {
+        AttackBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    }
+
+    // 5. 삭제 타이머 재생 (디졸브 적용/미적용 구분)
+    if (bIsDissolveWhenDied)
+    {
+        // 플립북 컴포넌트에서 0번 슬롯 머티리얼 동적 생성 
+        if (FlipbookComp)
+        {
+            DissolveMaterial = FlipbookComp->CreateDynamicMaterialInstance(0);
+        }
+
+        // DissolveDelay 후에 StartDissolve 함수 실행 
+        GetWorldTimerManager().SetTimer(DissolveDelayTimerHandle, this, &AEnemyBase::StartDissolve, DissolveDelay, false);
+    }
+    else
+    {   
+        // 틱 중단
+        PrimaryActorTick.bCanEverTick = false;
+
+        // 액터 파괴 타이머 실행 
+        GetWorldTimerManager().SetTimer(DeathDestroyTimerHandle, this, &AEnemyBase::DestroyEnemy, DestroyDelayAfterDeath, false);
+    }
 }
 
 void AEnemyBase::TryAttack() 
@@ -283,14 +334,29 @@ bool AEnemyBase::GetHit(const FDamageData& DamageData)
         // 현재 상태를 Hit으로 변겅
         CurrentState = EEnemyState::Hit;
 
-        // 현재 캐릭터의 물리적 속도를 제거 (이건 선택사항)
-        GetCharacterMovement()->StopMovementImmediately();
+        // 지상/공중 유닛에 따라 다르게 제어
+        if (bIsFlyingEnemy)
+        {       
+            // 피격당했을 때 공기저항 감소
+            MovementComp->FallingLateralFriction = 0.0f;
+
+            // 공중 유닛: 수직 속도(Z)만 0으로 만들어 고도를 유지, 부모 함수에서 적용한 넉백(X)은 유지
+            FVector CurrentVel = MovementComp->Velocity;
+            CurrentVel.Z = 0.0f;
+            MovementComp->Velocity = CurrentVel;
+        }
+        else
+        {
+            // 현재 캐릭터의 물리적 속도를 제거 (이건 선택사항)
+            GetCharacterMovement()->StopMovementImmediately();
+        }
 
         // 캐릭터의 공격 판정 즉시 중단(코드구현 대신 애니메이션 노티파이 스테이트 활용함)
 
         // Hit 플래그 활성화 및 공격 로직 초기화 (지면마찰력 초기화)
         bIsHit = true;
         EndAttackState();
+        ResetCombatStates();
 
         // 타이머 설정 및 타이머 이후 호출 함수 지정(ResetHitStateOnSimpleFSM) - Hit 상태 해제 타이머
         GetWorldTimerManager().ClearTimer(HitStunTimerHandle);
@@ -315,6 +381,11 @@ bool AEnemyBase::GetHit(const FDamageData& DamageData)
     GetWorldTimerManager().SetTimer(HitFlashResetTimerHandle, this, &AEnemyBase::ResetHitFlash, 0.1f, false);
 
     return true;
+}
+
+void AEnemyBase::DestroyEnemy()
+{
+    Destroy();
 }
 
 void AEnemyBase::OnDetectionBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -373,11 +444,10 @@ void AEnemyBase::ChaseOnSimpleFSM()
         }
 
     }
-    else {
+    else 
+    {
         Distance = GetDistanceTo(TargetPlayer);
     }
-
-
     //UE_LOG(LogTemp, Warning, TEXT("AI: Chasing Start, Distance: %.2f"), Distance);
 
     // 캐릭터 스프라이트 정렬
@@ -478,6 +548,12 @@ void AEnemyBase::ResetHitStateOnSimpleFSM()
     // 만약 타겟 플레이어가 있다면 추적, 없으면 일반(Patrol)
     CurrentState = (TargetPlayer) ? EEnemyState::Chase : EEnemyState::Patrol;
     UE_LOG(LogTemp, Warning, TEXT("AI: Hit Stun Ended, Returning to Normal"));
+
+    // 공기저항 초기화
+    if (bIsFlyingEnemy)
+    {
+        MovementComp->FallingLateralFriction = FlyingEnemyFallingLateralFriction;
+    }
 }
 
 bool AEnemyBase::IsCharacterCanAction()
@@ -490,6 +566,14 @@ bool AEnemyBase::IsCharacterCanAction()
     return bIsCanAct;
 }
 
+void AEnemyBase::ResetCombatStates()
+{   
+    // 부모 초기화 함수 호출 
+    Super::ResetCombatStates();
+
+    // 추후 적 캐릭터 전용 플래그가 나온다면 추가
+}
+
 void AEnemyBase::ResetHitFlash()
 {
     if (FlipbookComp && OriginalMaterial)
@@ -497,4 +581,16 @@ void AEnemyBase::ResetHitFlash()
         // 다시 원래 머티리얼로 되돌리기
         FlipbookComp->SetMaterial(0, OriginalMaterial);
     }
+}
+
+void AEnemyBase::StartDissolve()
+{   
+    // 디졸브 하지 않는 캐릭터에서 호출되었다면 리턴 
+    if (!bIsDissolveWhenDied)
+    {
+        return;
+    }
+
+    bIsDissolving = true;
+    UE_LOG(LogTemp, Warning, TEXT("EnemyBase: Dissolve Started!"));
 }
