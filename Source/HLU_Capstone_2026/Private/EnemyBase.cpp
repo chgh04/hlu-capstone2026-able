@@ -45,11 +45,21 @@ void AEnemyBase::Tick(float DeltaTime)
 
     if (!bUseSimpleFSM || bIsDead) return;
 
+    //flying모드에서는 중력 무시로 인해 가짜 중력 생성
+    if (bIsFlyingEnemy)
+    {
+        FVector CurrentVel = MovementComp->Velocity;
+        CurrentVel.Z -= 980.0f * FlyingGravity * DeltaTime;
+
+        MovementComp->Velocity = CurrentVel;
+    }
+       
     switch (CurrentState)
     {
     case EEnemyState::Patrol:
         //UE_LOG(LogTemp, Warning, TEXT("AI: Patrol"));
         // 순찰 로직 실행 (예: 무작위 위치로 이동), 기본상태
+        
         break;
 
     case EEnemyState::Chase:
@@ -188,6 +198,71 @@ void AEnemyBase::StepForward()
     //UE_LOG(LogTemp, Warning, TEXT("AI: Change GroundFriction to 0 and Dash Start!, Velocity = %.2f"), DashVelocity.X);
 }
 
+// 공중몬스터가 사용하는 함수
+// 공중 유닛 StepForward 
+void AEnemyBase::StepFlyingForward(AActor* TargetActor)
+{
+    // 넉백중 등 이동 불가능 상태에선 무시
+    // TargetActor를 못 찾으면 무시
+    if (!IsCharacterCanAction() || !TargetActor)
+    {
+        return;
+    }
+
+    // 캐릭터 무브먼트 컴포넌트 없으면 리턴
+    if (!MovementComp)
+    {
+        return;
+    }
+
+    //위치 가져오기
+    FVector StartLoc = GetActorLocation();
+    FVector TargetLoc = TargetActor->GetActorLocation();
+    //블루프린트에서 공격 높이 위치 조정 가능
+    TargetLoc.Z += FlyTargetZOffset;
+
+    // 방향 벡터 구하기, 정규화
+    FVector Direction = TargetLoc - StartLoc;
+    Direction.Normalize();
+
+    // 속도 , 방향 적용
+    FVector DashVelocity = Direction * EnemyFlyingAttackStepForce;
+    MovementComp->Velocity = DashVelocity;
+
+    //UE_LOG(LogTemp, Warning, TEXT("AI: Change GroundFriction to 0 and Dash Start!, Velocity = %.2f"), DashVelocity.X);
+}
+
+//상하 움직임 구현 , 노티파이에서 적용 가능합니다 
+void AEnemyBase::IdleFlyingUp()
+{
+    // 캐릭터 무브먼트 컴포넌트 없으면 리턴
+    if (!MovementComp)
+    {
+        return;
+    }
+
+    //현재 속도를 가져와 z축으로 strength만큼 올려줌
+    FVector CurrentVelocity = MovementComp->Velocity;
+    CurrentVelocity.Z += FlyingStrength;
+
+    MovementComp->Velocity = CurrentVelocity;
+}
+
+void AEnemyBase::IdleFlyingDown()
+{
+    // 캐릭터 무브먼트 컴포넌트 없으면 리턴
+    if (!MovementComp)
+    {
+        return;
+    }
+
+    //현재 속도를 가져와 z축으로 strength만큼 내림
+    FVector CurrentVelocity = MovementComp->Velocity;
+    CurrentVelocity.Z -= FallingStrength;
+
+    MovementComp->Velocity = CurrentVelocity;
+}
+
 void AEnemyBase::ResetAttackCooldown()
 {
     bCanAttack = true;
@@ -275,7 +350,33 @@ void AEnemyBase::OnDetectionEndOverlap(UPrimitiveComponent* OverlappedComp, AAct
 void AEnemyBase::ChaseOnSimpleFSM()
 {
     // 타겟과의 거리계산
-    float Distance = GetDistanceTo(TargetPlayer);
+    float Distance = 0.0f;
+
+    if (bIsFlyingEnemy) {
+        // X축, Z축 거리 구하기
+        float DistX = FMath::Abs(GetActorLocation().X - TargetPlayer->GetActorLocation().X);
+        float DistZ = FMath::Abs(GetActorLocation().Z - TargetPlayer->GetActorLocation().Z);
+
+        //공격을 허용할 최대 높이
+        float MaxHeight = FlyTargetHeight + FlyingAttacklerance;
+
+        //공격 가능 여부
+        if (DistZ > MaxHeight)
+        {
+            // 고도가 최대높이 보다 높으면 공격하지 않고 탐색
+            Distance = 9999.0f; 
+        }
+        else
+        {
+            // 최대 높이 안으로 들어오면 X값 계산
+            Distance = DistX;
+        }
+
+    }
+    else {
+        Distance = GetDistanceTo(TargetPlayer);
+    }
+
 
     //UE_LOG(LogTemp, Warning, TEXT("AI: Chasing Start, Distance: %.2f"), Distance);
 
@@ -284,18 +385,40 @@ void AEnemyBase::ChaseOnSimpleFSM()
 
     // 거리가 사거리보다 멀다면 다가가기
     if (Distance > AttackRange)
-    {   
-        // 방향 벡터
-        FVector Direction = TargetPlayer->GetActorLocation() - GetActorLocation();
+    {
+        //지상 유닛 추격
+        if (!bIsFlyingEnemy) {
+            // 방향 벡터
+            FVector Direction = TargetPlayer->GetActorLocation() - GetActorLocation();
+            
+            // 하늘을 날아다니지 않는다면 위 방향 무시
+            Direction.Z = 0.0f;
 
-        // 하늘을 날아다니지 않는다면 위 방향 무시
-        Direction.Z = 0.0f;
+            // 이동방향 정규화
+            Direction.Normalize();
 
-        // 이동방향 정규화
-        Direction.Normalize();
+            // 캐릭터에게 이동명령(플레이어가 입력하는 방식과 동일)
+            AddMovementInput(Direction, 1.0f);
+        }
+        //공중 유닛 추격 
+        else{
 
-        // 캐릭터에게 이동명령(플레이어가 입력하는 방식과 동일)
-        AddMovementInput(Direction, 1.0f);
+            //플레이어 머리위 타겟 좌표
+            FVector TargetLoc = TargetPlayer->GetActorLocation() + FVector(0.0f, 0.0f, FlyTargetHeight);
+
+            // 사인(Sin) 곡선 형태의 둥둥 떠다니는 무빙 추가
+            float Time = GetWorld()->GetTimeSeconds();
+            TargetLoc.X += FMath::Sin(Time * 3.0f) * FlySinRangeX;
+            TargetLoc.Z += FMath::Sin(Time * 2.0f) * FlySinRangeZ;
+
+            // 방향 벡터
+            FVector Direction = TargetLoc - GetActorLocation();
+            Direction.Normalize();
+
+            // 캐릭터에게 이동명령(플레이어가 입력하는 방식과 동일)
+            AddMovementInput(Direction, 1.0f);
+
+        }
     }
     else
     {   
@@ -306,8 +429,10 @@ void AEnemyBase::ChaseOnSimpleFSM()
         }
         else
         {   
-            // 플레이어를 처다봄
+            // 플레이어 방향 보기
             FVector LookDirection = TargetPlayer->GetActorLocation() - GetActorLocation();
+            // 공중 몬스터가 플레이어를 아래로 내려다보게 하고 싶다면, (대각선 애니메이션이 없어서 보류 중)
+             // if(!bIsFlyingEnemy)로 묶어서 지상 몹만 Z축을 0으로 고정하도록 수정 예정.
             LookDirection.Z = 0.0f;
 
             if (!LookDirection.IsNearlyZero())

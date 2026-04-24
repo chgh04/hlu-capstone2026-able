@@ -60,9 +60,17 @@ protected:
     UFUNCTION(BlueprintCallable, Category = "Combat")
     void StepForward();
 
+    // 노티파이에서 공중 몬스터가 호출할 전진 스텝 함수
+    UFUNCTION(BlueprintCallable, Category = "Combat")
+    void StepFlyingForward(AActor* TargetActor);
+
     // 캐릭터의 공격 시 전진성, 만약 패턴마다 다르게 하고싶다면 노티파이 등에서 변경 가능합니다. 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
     float EnemyAttackStepForce = 200.f;
+
+    // 공중 몬스터가 캐릭터 공격시 전진성, 노티파이에서 변경 가능합니다.
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+    float EnemyFlyingAttackStepForce = 200.f;
 
     // 공격 쿨타임 관련 변수
     UPROPERTY(EditDefaultsOnly, Category = "Combat")
@@ -115,6 +123,52 @@ protected:
     // 플레이어 감지 반경 - 블루프린트 디테일 패널에서 적마다 조정 가능
     UPROPERTY(EditAnywhere, Category = "Enemy_AI")
     float DetectionRadius = 500.f;
+
+    // 공중 유닛 전용 변수
+ protected:
+     // 공중 유닛 여부 판별 플래그 
+     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy_AI")
+     bool bIsFlyingEnemy = false;
+
+     //공중 유닛에게 적용할 중력값
+     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Flying")
+     float FlyingGravity = 0.1f;
+
+    // 타겟 추격시 높이 조정용 변수 
+     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Flying")
+     float FlyTargetHeight = 150.0f;
+
+     //  추격 시 좌우(X축) 무빙 반경 
+     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Flying")
+     float FlySinRangeX = 150.0f;
+
+     //  추격 시 상하(Z축) 출렁임 반경
+     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Flying")
+     float FlySinRangeZ = 50.0f;
+
+     //  공격 시 타겟의 높이 오프셋 
+     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Flying")
+     float FlyTargetZOffset = 50.0f;
+     
+     //  공중 유닛이 공격을 시작하기 위해 허용되는 높이 오차범위
+     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Flying")
+     float FlyingAttacklerance = 0.0f;
+
+     // 노티파이에서 호출할 위로 밀어올리는 힘
+     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Flying")
+     float FlyingStrength = 100.0f;
+
+     // 노티파이에서 호출할 위로 떨어지는 힘
+     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Flying")
+     float FallingStrength = 50.0f;
+
+     // 노티파이에서 호출할 위로 올리는 함수
+     UFUNCTION(BlueprintCallable, Category = "Combat|Flying")
+     void IdleFlyingUp();
+
+     // 노티파이에서 호출할 밑으로 내리는 함수
+     UFUNCTION(BlueprintCallable, Category = "Combat|Flying")
+     void IdleFlyingDown();
 
 // 상태머신(SFSM) 관련 함수/변수 -------------------
 protected:
