@@ -286,7 +286,7 @@ bool AEnemyBase::GetHit(const FDamageData& DamageData)
         // 현재 캐릭터의 물리적 속도를 제거 (이건 선택사항)
         GetCharacterMovement()->StopMovementImmediately();
 
-        // 캐릭터의 공격 판정 즉시 중단 
+        // 캐릭터의 공격 판정 즉시 중단(코드구현 대신 애니메이션 노티파이 스테이트 활용함)
 
         // Hit 플래그 활성화 및 공격 로직 초기화 (지면마찰력 초기화)
         bIsHit = true;
@@ -358,7 +358,7 @@ void AEnemyBase::ChaseOnSimpleFSM()
         float DistZ = FMath::Abs(GetActorLocation().Z - TargetPlayer->GetActorLocation().Z);
 
         //공격을 허용할 최대 높이
-        float MaxHeight = FlyTargetHeight + FlyingAttacklerance;
+        float MaxHeight = FlyTargetHeight + FlyingAttackTolerance;
 
         //공격 가능 여부
         if (DistZ > MaxHeight)
@@ -401,7 +401,7 @@ void AEnemyBase::ChaseOnSimpleFSM()
             AddMovementInput(Direction, 1.0f);
         }
         //공중 유닛 추격 
-        else{
+        else {
 
             //플레이어 머리위 타겟 좌표
             FVector TargetLoc = TargetPlayer->GetActorLocation() + FVector(0.0f, 0.0f, FlyTargetHeight);
