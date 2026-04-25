@@ -9,6 +9,7 @@
 #include "GameplayTagContainer.h"
 #include "BlueprintGameplayTagLibrary.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Components/BoxComponent.h"
 #include "Camera/CameraComponent.h"
 #include "PaperFlipbookComponent.h"
 #include "PaperFlipbook.h"
@@ -290,11 +291,20 @@ void APlayerBase::ExecuteAttackHit(AActor* TargetActor, TSubclassOf<class UCusto
     // y축 이동을 즉시 중단, 버그 관리용
     MovementComp->Velocity.Y = 0.f;
 
-    if (abs(MovementComp->Velocity.X) > 0)
+    // 공격 적중 후 액션
+    if (bIsAirDownwardAttacking)
     {
-        float ReducedXVelocity = MovementComp->Velocity.X / 4.0f;
-        MovementComp->Velocity.X = ReducedXVelocity;
-        //UE_LOG(LogTemp, Warning, TEXT("Player: Reduce Velocity after attack, Velocity: %.2f"), ReducedXVelocity);
+        // 적 적중 후 다시 위로 튕겨오름
+        MovementComp->Velocity.Z = 600.0f;
+    }
+    else
+    {
+        if (abs(MovementComp->Velocity.X) > 0)
+        {
+            float ReducedXVelocity = MovementComp->Velocity.X / 4.0f;
+            MovementComp->Velocity.X = ReducedXVelocity;
+            //UE_LOG(LogTemp, Warning, TEXT("Player: Reduce Velocity after attack, Velocity: %.2f"), ReducedXVelocity);
+        }
     }
 }
 
@@ -312,15 +322,40 @@ void APlayerBase::AirDownwardAttack()
     //UE_LOG(LogTemp, Warning, TEXT("Air Downward Attack Called"));
     bIsAirAttacking = true;
 
-    // 공중 공격 시 약간의 공중 체공 기능
-    /*FVector CurrentVelocity = MovementComp->Velocity;
-    CurrentVelocity.Z = 0.0f;
-    MovementComp->Velocity = CurrentVelocity;*/
-
     // 공중 하단공격 애니메이션 재생 
     PlayDownwardAirAttackAnimation();
 
     //UE_LOG(LogTemp, Warning, TEXT("Air Attack Executed! Suspension applied."));
+}
+
+void APlayerBase::AttackBoxExtendStart()
+{   
+    UE_LOG(LogTemp, Warning, TEXT("Attack Box Extend Called!"));
+
+    // 체공 하단공격 시작과 함께 공격 박스 크기, 위치 변경
+    if (AttackBox)
+    {
+        AttackBox->SetBoxExtent(AirDownwardAttackBoxSize);
+        AttackBox->SetRelativeLocation(AirDownwardAttackBoxLoc);
+    }
+
+    // 플레이어가 공중 하단공격을 시작했다 표시
+    bIsAirDownwardAttacking = true;
+}
+
+void APlayerBase::AttackBoxExtendEnd()
+{   
+    UE_LOG(LogTemp, Warning, TEXT("Attack Box Extend End!"));
+
+    // 체공 하단공격이 종료되면 박스 크기, 위치 초기화
+    if (AttackBox)
+    {
+        AttackBox->SetBoxExtent(DefaultAttackBoxSize);
+        AttackBox->SetRelativeLocation(DefaultAttackBoxLoc);
+    }
+
+    // 플레이어의 공중 하단공격을 중단을 표시
+    bIsAirDownwardAttacking = false;
 }
 
 void APlayerBase::CheckCombo()
@@ -443,6 +478,7 @@ void APlayerBase::FullResetCombo()
     bSaveAttack = false;
     bIsWaitNextAttackInput = false;
     bIsAirAttacking = false;
+    bIsAirDownwardAttacking = false;
     //bIgnoreSaveAttack = true; 이건 여기서 바뀌면 안되서 EndAttackState에서 호출합니다. 
     ComboCount = 0;
 
@@ -1159,6 +1195,12 @@ void APlayerBase::CheckWall()
     bool bHit = GetWorld()->LineTraceSingleByChannel(
         HitResult, StartLocation, EndLocation, ECC_Visibility
     );
+
+    // 널포인터 참조 방지
+    if (!IsValid(HitResult.GetActor()) || !IsValid(HitResult.GetComponent()))
+    {
+        return;
+    }
 
     // 레이저에 뭐가 맞으면
     if (bHit && HitResult.GetActor()->ActorHasTag(FName("Climbable")))

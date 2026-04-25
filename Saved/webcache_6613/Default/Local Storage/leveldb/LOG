@@ -1,15 +1,18 @@
-2026/04/25-00:39:00.329 1bac Reusing MANIFEST E:\Unreal\hlu-capstone2026-able\Saved\webcache_6613\Default\Local Storage\leveldb/MANIFEST-000001
-2026/04/25-00:39:00.334 1bac Recovering log #38
-2026/04/25-00:39:00.335 1bac Reusing old log E:\Unreal\hlu-capstone2026-able\Saved\webcache_6613\Default\Local Storage\leveldb/000038.log 
-2026/04/25-01:07:34.633 57f0 Level-0 table #41: started
-2026/04/25-01:07:34.636 57f0 Level-0 table #41: 68453 bytes OK
-2026/04/25-01:07:34.638 57f0 Delete type=0 #38
-2026/04/25-01:07:34.638 57f0 Compacting 4@0 + 1@1 files
-2026/04/25-01:07:34.642 57f0 Generated table #42@0: 10 keys, 40475 bytes
-2026/04/25-01:07:34.642 57f0 Compacted 4@0 + 1@1 files => 40475 bytes
-2026/04/25-01:07:34.643 57f0 compacted to: files[ 0 1 1 0 0 0 0 ]
-2026/04/25-01:07:34.643 57f0 Delete type=2 #29
-2026/04/25-01:07:34.643 57f0 Delete type=2 #31
-2026/04/25-01:07:34.643 57f0 Delete type=2 #34
-2026/04/25-01:07:34.643 57f0 Delete type=2 #37
-2026/04/25-01:07:34.644 57f0 Delete type=2 #41
+2026/04/26-01:02:23.532 5c4c Reusing MANIFEST E:\Unreal\hlu-capstone2026-able\Saved\webcache_6613\Default\Local Storage\leveldb/MANIFEST-000001
+2026/04/26-01:02:23.536 5c4c Recovering log #58
+2026/04/26-01:02:23.536 5c4c Reusing old log E:\Unreal\hlu-capstone2026-able\Saved\webcache_6613\Default\Local Storage\leveldb/000058.log 
+2026/04/26-01:02:33.691 5048 Level-0 table #62: started
+2026/04/26-01:02:33.694 5048 Level-0 table #62: 67374 bytes OK
+2026/04/26-01:02:33.694 5048 Delete type=0 #58
+2026/04/26-01:21:58.819 5048 Level-0 table #64: started
+2026/04/26-01:21:58.821 5048 Level-0 table #64: 80600 bytes OK
+2026/04/26-01:21:58.822 5048 Delete type=0 #61
+2026/04/26-01:21:58.823 5048 Compacting 4@0 + 1@1 files
+2026/04/26-01:21:58.825 5048 Generated table #65@0: 10 keys, 54327 bytes
+2026/04/26-01:21:58.825 5048 Compacted 4@0 + 1@1 files => 54327 bytes
+2026/04/26-01:21:58.826 5048 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/04/26-01:21:58.826 5048 Delete type=2 #54
+2026/04/26-01:21:58.826 5048 Delete type=2 #56
+2026/04/26-01:21:58.826 5048 Delete type=2 #59
+2026/04/26-01:21:58.826 5048 Delete type=2 #62
+2026/04/26-01:21:58.826 5048 Delete type=2 #64

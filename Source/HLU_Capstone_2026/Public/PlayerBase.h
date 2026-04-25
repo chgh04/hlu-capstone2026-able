@@ -122,6 +122,30 @@ protected:
     // 공중아래공격 수행 함수
     void AirDownwardAttack();
 
+    // 플레이어 공격 범위 기본값
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player_Combat_Attack")
+    FVector DefaultAttackBoxSize = FVector(72.f, 48.f, 72.f);
+
+    // 플레이어 공격 박스 상대위치 기본값
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player_Combat_Attack")
+    FVector DefaultAttackBoxLoc = FVector(50.f, 0.f, 0.f);
+
+    // 플레이어 체공 하단 공격 범위
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player_Combat_Attack")
+    FVector AirDownwardAttackBoxSize = FVector(96.f, 48.f, 72.f);
+
+    // 플레이어 체공 하단 공격 공격 박스 상대위치
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player_Combat_Attack")
+    FVector AirDownwardAttackBoxLoc = FVector(0.f, 0.f, -20.f);
+
+    // 플레이어 공중 공격시 공격 박스 조절 함수
+    UFUNCTION(BlueprintCallable, Category = "Player_Combat_Attack")
+    void AttackBoxExtendStart();
+
+    // 플레이어 공중 공격 종료시 박스 사이즈 초기화 함수
+    UFUNCTION(BlueprintCallable, Category = "Player_Combat_Attack")
+    void AttackBoxExtendEnd();
+
     // 플레이어의 공중일반공격 애니메이션 재생 함수
     UFUNCTION(BlueprintImplementableEvent, Category = "Player_Combat_Attack")
     void PlayDefaultAirAttackAnimation();
@@ -130,9 +154,13 @@ protected:
     UFUNCTION(BlueprintImplementableEvent, Category = "Player_Combat_Attack")
     void PlayDownwardAirAttackAnimation();
 
-    // 플레이어의 공중 공격 플래그
+    // 플레이어의 모든 공중 공격 플래그
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_Combat_Attack")
     bool bIsAirAttacking = false;
+
+    // 플레이어가 공중 하단공격을 실행중인지 표시
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_Combat_Attack")
+    bool bIsAirDownwardAttacking = false;
 
 public:
     // 플레이어의 애니메이션 강제종료 함수
