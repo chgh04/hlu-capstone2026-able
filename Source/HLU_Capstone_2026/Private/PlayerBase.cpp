@@ -64,6 +64,9 @@ void APlayerBase::BeginPlay()
     {
         OriginArmLength = CameraString->TargetArmLength;
         OriginSocketOffset = CameraString->SocketOffset;
+
+        TargetArmLength = OriginArmLength;
+        TargetSocketOffset = OriginSocketOffset;
     }
 }
 
@@ -102,6 +105,9 @@ void APlayerBase::Tick(float DeltaTime)
 
     // 플레이어 정렬 적용(스프라이트를 SpriteSortAmount만큼 앞으로 땡기기)
     ApplySpriteSortAmount();
+
+    // 플레이어 카메라 연출 조작
+    UpdateCameraSettingOverride(DeltaTime);
 }
 
 void APlayerBase::RestAtCheckpoint_Implementation(float HealPercentage)
@@ -299,7 +305,7 @@ void APlayerBase::ExecuteAttackHit(AActor* TargetActor, TSubclassOf<class UCusto
     }
     else
     {
-        if (abs(MovementComp->Velocity.X) > 0)
+        if (FMath::Abs(MovementComp->Velocity.X) > 0)
         {
             float ReducedXVelocity = MovementComp->Velocity.X / 4.0f;
             MovementComp->Velocity.X = ReducedXVelocity;
@@ -1287,6 +1293,55 @@ void APlayerBase::RefillPotion()
     CurrentPotionCount = MaxPotionCount;
 
     UE_LOG(LogTemp, Warning, TEXT("Player: Potion refilled to %d"), MaxPotionCount);
+}
+
+void APlayerBase::SetCameraOverride(float NewArmLength, FVector NewSocketOffset)
+{   
+    // 트리거로부터 받아온 새로운 목표값 적용
+    TargetArmLength = NewArmLength;
+    TargetSocketOffset = NewSocketOffset;
+}
+
+void APlayerBase::ResetCameraOverride()
+{
+    // 다시 원본으로 목표 변경 
+    TargetArmLength = OriginArmLength;
+    TargetSocketOffset = OriginSocketOffset;
+}
+
+void APlayerBase::UpdateCameraSettingOverride(float DeltaTime)
+{   
+    // 상호작용중이면 적용하지 않음
+    if (bIsInteracting)
+    {
+        return;
+    }
+
+    // 현재 카메라 세팅과 목표 카메라 세팅이 같다면 리턴
+    if (CameraString->TargetArmLength == TargetArmLength && CameraString->SocketOffset == TargetSocketOffset)
+    {
+        return;
+    }
+
+    if (CameraString)
+    {   
+        // 카메라 암 길이 보간
+        CameraString->TargetArmLength = FMath::FInterpTo(
+            CameraString->TargetArmLength,
+            TargetArmLength,
+            DeltaTime,
+            CameraTransitionSpeed
+        );
+
+        // 카메라 SocketOffset 보간
+        CameraString->SocketOffset = FMath::VInterpTo(
+            CameraString->SocketOffset,
+            TargetSocketOffset,
+            DeltaTime,
+            CameraTransitionSpeed
+        );
+    }
+
 }
 
 void APlayerBase::CancelInteraction()

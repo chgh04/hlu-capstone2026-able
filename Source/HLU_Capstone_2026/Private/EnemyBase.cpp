@@ -355,6 +355,15 @@ bool AEnemyBase::GetHit(const FDamageData& DamageData)
 
         // 캐릭터의 공격 판정 즉시 중단(코드구현 대신 애니메이션 노티파이 스테이트 활용함)
 
+        // 피격당한 방향으로 회전
+        FVector LookDirection = DamageData.HitDirection * -1.0f;
+        LookDirection.Z = 0.0f;
+
+        if (!LookDirection.IsNearlyZero())
+        {
+            SetActorRotation(LookDirection.Rotation());
+        }
+
         // Hit 플래그 활성화 및 공격 로직 초기화 (지면마찰력 초기화)
         bIsHit = true;
         EndAttackState();

@@ -455,12 +455,8 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Player_Potion")
     void RefillPotion();
 
-// 플레이어 상호작용 관련 함수/변수 --------------------------------------
+// 플레이어 카메라 및 상호작용 관련 함수/변수 --------------------------------------
 protected:
-    // 플레이어 상호작용 플래그
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_Interaction")
-    bool bIsInteracting = false;
-
     // 기본 카메라 스프링 암 길이 저장 변수
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_Interaction")
     float OriginArmLength;
@@ -476,6 +472,33 @@ protected:
     // 상호작용이 끝나면 원래 카메라 상태로 되돌림
     UFUNCTION(BlueprintImplementableEvent, Category = "Player_Camera")
     void PlayInteractCameraZoomOut();
+
+    // 카메라 이동 목표가 생겼다면, 해당 목표에 대한 카메라암 길이를 저장하는 변수 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_Camera")
+    float TargetArmLength;
+
+    // 카메라 이동 목표가 생겼다면, 해당 목표를 저장하는 변수
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_Camera")
+    FVector TargetSocketOffset;
+
+    // 카메라 목표에 대한 이동 속도 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player_Camera")
+    float CameraTransitionSpeed = 1.0f;
+
+    // 카메라 위치 변경 지역에 들어왔을 때 호출할 함수 
+    UFUNCTION(BlueprintCallable, Category = "Player_Camera")
+    void SetCameraOverride(float NewArmLength, FVector NewSocketOffset);
+
+    // 카메라 위치 변경 지역에서 나갈 때 카메라 원상복구 함수
+    UFUNCTION(BlueprintCallable, Category = "Player_Camera")
+    void ResetCameraOverride();
+
+    // 매 틱마다 호출할 플레이어 카메라 보간 함수
+    void UpdateCameraSettingOverride(float DeltaTime);
+
+    // 플레이어 상호작용 플래그
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_Interaction")
+    bool bIsInteracting = false;
 
     // 상호작용 강제 중단(Escape)
     UFUNCTION(BlueprintCallable, Category = "Player_Interaction")
