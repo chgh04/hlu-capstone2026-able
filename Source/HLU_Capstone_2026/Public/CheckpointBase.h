@@ -36,6 +36,15 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Checkpoint")
     void ActivateCheckpoint(AActor* Interactor);
 
+    // 체크포인트 이름을 세이브 데이터에 기록 - 활성화 목록 복원용
+    UFUNCTION(BlueprintCallable, Category = "Checkpoint")
+    const FString& GetCheckpointName() const { return CheckpointName; }
+
+protected:
+    // 이 체크포인트의 고유 이름 - 디테일 패널에서 설정
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Checkpoint")
+    FString CheckpointName = TEXT("Checkpoint_Default");
+
 // 이펙트 및 사운드
 protected:
     // 자식 BP에서 구현 - 활성화 애니메이션/이펙트
@@ -45,4 +54,8 @@ protected:
     // 자식 BP에서 구현 - 체력 회복 이펙트
     UFUNCTION(BlueprintImplementableEvent, Category = "Checkpoint")
     void PlayHealEffect();
+
+//댕글링 포인터 크래쉬 방지
+protected:
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 };

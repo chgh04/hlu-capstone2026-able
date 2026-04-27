@@ -111,3 +111,23 @@ void UInventoryComponent::UnlockRelicSlot()
 
     UE_LOG(LogTemp, Warning, TEXT("Inventory: Relic slot unlocked! Active slots: %d"), ActiveRelicSlotCount);
 }
+
+void UInventoryComponent::LoadFromSaveData(
+    const TArray<FName>& InOwnedItemCodes,
+    const TArray<FPilgrimItemData>& InAllItems,
+    const TArray<FPilgrimItemData>& InRelicSlots,
+    int32 InActiveRelicSlotCount)
+{
+    OwnedItemCodes = InOwnedItemCodes;
+    AllItems = InAllItems;
+    RelicSlots = InRelicSlots;
+    ActiveRelicSlotCount = InActiveRelicSlotCount;
+
+    // 로드된 아이템 각각에 대해 델리게이트 브로드캐스트 - UI 갱신용
+    for (const FPilgrimItemData& Item : AllItems)
+    {
+        OnItemAdded.Broadcast(Item);
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("Inventory: Loaded %d items from save"), AllItems.Num());
+}

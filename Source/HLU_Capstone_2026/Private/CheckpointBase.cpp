@@ -27,6 +27,7 @@ void ACheckpointBase::OnInteract_Implementation(AActor* Interactor)
     {
         // 인터페이스 함수 호출
         ICheckpointInteractable::Execute_RestAtCheckpoint(Interactor, HealPercent);
+        ICheckpointInteractable::Execute_SaveAtCheckpoint(Interactor, GetActorLocation());
     }
 }
 
@@ -44,4 +45,10 @@ void ACheckpointBase::ActivateCheckpoint(AActor* Interactor)
     }*/
 
     UE_LOG(LogTemp, Warning, TEXT("Checkpoint: Activated!"));
+}
+
+//댕글링 포인터 크래쉬 방지
+void ACheckpointBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    Super::EndPlay(EndPlayReason);
 }

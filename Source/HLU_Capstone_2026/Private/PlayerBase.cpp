@@ -17,6 +17,8 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
+#include "PilgrimSaveGame.h"
+#include "InventoryComponent.h"
 
 
 APlayerBase::APlayerBase()
@@ -75,6 +77,7 @@ void APlayerBase::BeginPlay()
         TargetArmLength = OriginArmLength;
         TargetSocketOffset = OriginSocketOffset;
     }
+    GetWorldTimerManager().SetTimerForNextTick(this, &APlayerBase::LoadGame);
 }
 
 void APlayerBase::Tick(float DeltaTime)
@@ -139,6 +142,12 @@ void APlayerBase::RestAtCheckpoint_Implementation(float HealPercentage)
     PlayNiagaraCompEffect(RestCheckpointEffect);
 
     UE_LOG(LogTemp, Warning, TEXT("Player: Rested at Checkpoint! Heal HP and Potion"));
+}
+
+// 여기에 추가
+void APlayerBase::SaveAtCheckpoint_Implementation(FVector CheckpointLocation)
+{
+    SaveGame(CheckpointLocation);
 }
 
 void APlayerBase::RegisterNearbyItem_Implementation(AActor* Item)
@@ -1300,6 +1309,81 @@ void APlayerBase::RefillPotion()
     CurrentPotionCount = MaxPotionCount;
 
     UE_LOG(LogTemp, Warning, TEXT("Player: Potion refilled to %d"), MaxPotionCount);
+}
+
+void APlayerBase::SaveGame(FVector CheckpointLocation)
+{
+    UPilgrimSaveGame* SaveData = Cast<UPilgrimSaveGame>(
+        UGameplayStatics::CreateSaveGameObject(UPilgrimSaveGame::StaticClass())
+    );
+
+    if (!SaveData) return;
+
+    // 플레이어 상태 저장
+    // 플레이어 상태 저장
+    FVector SaveLocation = CheckpointLocation;
+    SaveLocation.Z += 200.f;
+    SaveData->PlayerRespawnLocation = SaveLocation;
+    SaveData->PlayerCurrentPotionCount = CurrentPotionCount;
+
+    if (HealthComponent)
+    {
+        SaveData->PlayerCurrentHealth = HealthComponent->GetCurrentHealth();
+    }
+
+    // 인벤토리 저장
+    if (InventoryComponent)
+    {
+        SaveData->OwnedItemCodes = InventoryComponent->GetOwnedItemCodes();
+        SaveData->AllItems = InventoryComponent->GetAllItems();
+        SaveData->RelicSlots = InventoryComponent->GetRelicSlots();
+        SaveData->ActiveRelicSlotCount = InventoryComponent->GetActiveRelicSlotCount();
+    }
+
+    UGameplayStatics::SaveGameToSlot(SaveData, UPilgrimSaveGame::SaveSlotName, UPilgrimSaveGame::SaveUserIndex);
+
+    UE_LOG(LogTemp, Warning, TEXT("SaveGame: Game saved at %s"), *CheckpointLocation.ToString());
+    UE_LOG(LogTemp, Warning, TEXT("SaveGame: Saving %d items"), InventoryComponent ? InventoryComponent->GetAllItems().Num() : -1);
+}
+
+void APlayerBase::LoadGame()
+{
+    if (!UGameplayStatics::DoesSaveGameExist(UPilgrimSaveGame::SaveSlotName, UPilgrimSaveGame::SaveUserIndex))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("LoadGame: No save file found"));
+        return;
+    }
+
+    UPilgrimSaveGame* SaveData = Cast<UPilgrimSaveGame>(
+        UGameplayStatics::LoadGameFromSlot(UPilgrimSaveGame::SaveSlotName, UPilgrimSaveGame::SaveUserIndex)
+    );
+
+    if (!SaveData) return;
+
+    // 플레이어 상태 복원
+    CurrentRespawnLocation = SaveData->PlayerRespawnLocation;
+    SetActorLocation(SaveData->PlayerRespawnLocation);
+    CurrentPotionCount = SaveData->PlayerCurrentPotionCount;
+
+    if (HealthComponent)
+    {
+        HealthComponent->HealHealth(SaveData->PlayerCurrentHealth - HealthComponent->GetCurrentHealth());
+    }
+
+    // 인벤토리 복원
+    if (InventoryComponent)
+    {
+        InventoryComponent->LoadFromSaveData(
+            SaveData->OwnedItemCodes,
+            SaveData->AllItems,
+            SaveData->RelicSlots,
+            SaveData->ActiveRelicSlotCount
+        );
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("LoadGame: Game loaded, respawn at %s"), *SaveData->PlayerRespawnLocation.ToString());
+    UE_LOG(LogTemp, Warning, TEXT("LoadGame: Loaded %d items from save"),
+        InventoryComponent ? InventoryComponent->GetAllItems().Num() : -1);
 }
 
 void APlayerBase::SetCameraOverride(float NewArmLength, FVector NewSocketOffset)

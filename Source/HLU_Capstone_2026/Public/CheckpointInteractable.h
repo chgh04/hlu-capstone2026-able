@@ -20,4 +20,8 @@ public:
 	// 휴식을 취할 때 호출되는 함수
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
 	void RestAtCheckpoint(float HealPercentage);
+
+	// 체크포인트 위치로 게임 저장
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
+	void SaveAtCheckpoint(FVector CheckpointLocation);
 };
