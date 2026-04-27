@@ -4,6 +4,7 @@
 #include "GameplayTagsModule.h"
 #include "BlueprintGameplayTagLibrary.h"
 #include "InteractReceiver.h"
+#include "InventoryComponent.h"
 
 ABaseItem::ABaseItem()
 {
@@ -117,6 +118,17 @@ void ABaseItem::ExecutePickup(AActor* Picker)
 
     // 인벤토리 완성 후 여기에 바인딩
     OnItemPickedUp.Broadcast(ItemData);
+
+    // 플레이어 인벤토리에 직접 추가
+    // IInteractReceiver를 구현한 액터(플레이어)에서 InventoryComponent를 찾아 AddItem 호출
+    if (Picker)
+    {
+        UInventoryComponent* Inventory = Picker->FindComponentByClass<UInventoryComponent>();
+        if (Inventory)
+        {
+            Inventory->AddItem(ItemData);
+        }
+    }
 
     // 획득 이펙트 재생
     if (PickupBurstEffect)

@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "DefaultCharBase.h"
 #include "CheckpointInteractable.h"
+#include "InventoryComponent.h"
 #include "InteractReceiver.h"
 #include "PlayerBase.generated.h"
 
@@ -67,6 +68,10 @@ protected:
     // 실제 카메라
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
     TObjectPtr<class UCameraComponent> MainCamera;
+
+    // 인벤토리 컴포넌트
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UInventoryComponent* InventoryComponent;
 
     // 지속형 나이아가라 컴포넌트
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_VFX")
