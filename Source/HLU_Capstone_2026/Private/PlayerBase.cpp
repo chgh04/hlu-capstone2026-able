@@ -117,7 +117,7 @@ void APlayerBase::Tick(float DeltaTime)
     UpdateCameraSettingOverride(DeltaTime);
 }
 
-void APlayerBase::RestAtCheckpoint_Implementation(float HealPercentage)
+void APlayerBase::RestAtCheckpoint_Implementation(float HealPercentage, AActor* CheckpointRef)
 {       
     // 이미 상호작용중이라면 반환
     if (bIsInteracting)
@@ -125,6 +125,9 @@ void APlayerBase::RestAtCheckpoint_Implementation(float HealPercentage)
         return;
     }
     
+    // 전달받은 체크포인트 포인터를 저장
+    CurrentRestingCheckpoint = CheckpointRef;
+
     // 체력 회복
     if (HealthComponent)
     {
@@ -1355,9 +1358,24 @@ void APlayerBase::CancelInteraction()
 {   
     // 상호작용 도중일때만 호출됨
     if (bIsInteracting)
-    {
+    {   
+        // 만약 체크포인트 포인터가 비어있지 않다면 체크포인트에게 상호작용 종료를 전달
+        if (CurrentRestingCheckpoint)
+        {
+            if (CurrentRestingCheckpoint->Implements<UCheckpointInteractable>())
+            {   
+                // 이때, 체크포인트와 상호작용 하지 않았더라도 체크포인트 포인터에서 이를 무시함
+                ICheckpointInteractable::Execute_EndCheckpointRest(CurrentRestingCheckpoint);
+            }
+
+            // 포인터 비우기
+            CurrentRestingCheckpoint = nullptr; 
+        }
+
+        // 상호작용 플래그 초기화
         bIsInteracting = false;
 
+        // 카메라 줌아웃 실행 
         PlayInteractCameraZoomOut();
 
         UE_LOG(LogTemp, Warning, TEXT("Interaction Cancelled by ESC"));

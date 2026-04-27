@@ -26,7 +26,23 @@ void ACheckpointBase::OnInteract_Implementation(AActor* Interactor)
     if (Interactor->Implements<UCheckpointInteractable>())
     {
         // 인터페이스 함수 호출
-        ICheckpointInteractable::Execute_RestAtCheckpoint(Interactor, HealPercent);
+        ICheckpointInteractable::Execute_RestAtCheckpoint(Interactor, HealPercent, this);
+
+        // 휴식 중 플래그 전환
+        bIsResting = true;
+
+        // 포스트 프로세스 적용
+        OnRestStartedVisuals();
+    }
+}
+
+void ACheckpointBase::EndCheckpointRest_Implementation()
+{   
+    // 이 체크포인트 오브젝트와 상호작용중에만 실행
+    if (bIsResting)
+    {   
+        // 포스트 프로세스 초기화
+        OnRestEndedVisuals();
     }
 }
 

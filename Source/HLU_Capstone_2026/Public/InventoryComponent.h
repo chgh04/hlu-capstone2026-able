@@ -39,7 +39,7 @@ public:
 protected:
     virtual void BeginPlay() override;
 
-    // 델리게이트
+// 델리게이트
 public:
     // 아이템 추가 시 UI에서 바인딩
     UPROPERTY(BlueprintAssignable, Category = "Inventory_Events")
@@ -49,7 +49,7 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Inventory_Events")
     FOnRelicSlotChangedSignature OnRelicSlotChanged;
 
-    // 아이템 관련 함수/변수
+// 아이템 관련 함수/변수
 public:
     // 아이템 추가 - BaseItem의 OnItemPickedUp 델리게이트에 바인딩
     UFUNCTION(BlueprintCallable, Category = "Inventory")
@@ -72,7 +72,7 @@ private:
     UPROPERTY(VisibleAnywhere, Category = "Inventory")
     TArray<FPilgrimItemData> AllItems;
 
-    // 장신구 슬롯 관련 함수/변수
+// 장신구 슬롯 관련 함수/변수
 public:
     // 장신구 슬롯에 장착 - SlotIndex: 0부터 시작
     UFUNCTION(BlueprintCallable, Category = "Inventory")

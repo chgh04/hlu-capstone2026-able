@@ -19,5 +19,8 @@ class HLU_CAPSTONE_2026_API ICheckpointInteractable
 public:
 	// 휴식을 취할 때 호출되는 함수
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
-	void RestAtCheckpoint(float HealPercentage);
+	void RestAtCheckpoint(float HealPercentage, AActor* CheckpointRef);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
+	void EndCheckpointRest();
 };

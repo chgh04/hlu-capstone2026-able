@@ -35,7 +35,8 @@ protected:
 
 // 인터페이스 구현 --------------------------------------
 public:
-    virtual void RestAtCheckpoint_Implementation(float HealPercentage) override;
+    // 체크포인트 휴식 시 호출될 함수
+    virtual void RestAtCheckpoint_Implementation(float HealPercentage, AActor* CheckpointRef) override;
 
     // IInteractReceiver - 아이템 등록/해제
     virtual void RegisterNearbyItem_Implementation(AActor* Item) override;
@@ -508,6 +509,10 @@ protected:
     // 상호작용 강제 중단(Escape)
     UFUNCTION(BlueprintCallable, Category = "Player_Interaction")
     void CancelInteraction();
+
+    // 플레이어가 현재 휴식중인 체크포인터를 기억할 포인터 변수
+    UPROPERTY()
+    AActor* CurrentRestingCheckpoint;
 
 // 기타 추가 기능 --------------------------------------
 protected:
