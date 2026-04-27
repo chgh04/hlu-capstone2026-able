@@ -32,6 +32,9 @@ APlayerBase::APlayerBase()
     MainCamera->SetupAttachment(CameraString, USpringArmComponent::SocketName);
     MainCamera->bUsePawnControlRotation = false;
 
+    // 인벤토리 컴포넌트 생성
+    InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
+
     // 캐릭터 컴포넌트에서 앉기 기능 활성화
     GetCharacterMovement()->GetNavAgentPropertiesRef().bCanCrouch = true;
 
@@ -55,6 +58,10 @@ APlayerBase::APlayerBase()
 void APlayerBase::BeginPlay()
 {
     Super::BeginPlay();
+
+    // OnItemPickedUp 델리게이트를 인벤토리에 연결
+    // 아이템 습득 시 자동으로 인벤토리에 추가됨  
+    // 연결은 월드에 배치된 아이템에서 처리해야 하므로 여기서는 하지 않음
 
     // 플레이어 최대 이동속도 저장
     SavedPlayerMaxWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
