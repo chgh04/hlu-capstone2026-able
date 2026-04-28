@@ -119,7 +119,7 @@ protected:
 
     // 감지된 플레이어 저장 - 블루프린트에서 이동 로직에 활용, nullptr: 감지 안된 상태
     UPROPERTY(BlueprintReadOnly, Category = "Enemy_AI")
-    class APlayerBase* TargetPlayer;
+    AActor* TargetPlayer;
 
     // Dectection Range 오버랩 시작 이벤트
     UFUNCTION()

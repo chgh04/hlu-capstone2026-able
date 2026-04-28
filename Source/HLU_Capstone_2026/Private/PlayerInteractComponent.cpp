@@ -10,7 +10,7 @@
 // Sets default values for this component's properties
 UPlayerInteractComponent::UPlayerInteractComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 }
 
 void UPlayerInteractComponent::RegisterInteractable(AActor* Interactable)
