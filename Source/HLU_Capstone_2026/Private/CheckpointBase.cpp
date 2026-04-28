@@ -26,7 +26,8 @@ void ACheckpointBase::OnInteract_Implementation(AActor* Interactor)
     if (Interactor->Implements<UCheckpointInteractable>() && !bIsResting)
     {
         // 인터페이스 함수 호출
-        ICheckpointInteractable::Execute_RestAtCheckpoint(Interactor, HealPercent, this);
+        ICheckpointInteractable::Execute_RestAtCheckpoint(Interactor, HealPercent, this);   // 플레이어 회복
+        ICheckpointInteractable::Execute_SaveAtCheckpoint(Interactor, GetActorLocation());  // 플레이어 상태 저장
 
         // 휴식 중 플래그 전환
         bIsResting = true;
@@ -46,8 +47,6 @@ void ACheckpointBase::EndCheckpointRest_Implementation()
 
         // 휴식 플래그 초기화
         bIsResting = false;
-        ICheckpointInteractable::Execute_RestAtCheckpoint(Interactor, HealPercent);
-        ICheckpointInteractable::Execute_SaveAtCheckpoint(Interactor, GetActorLocation());
     }
 }
 

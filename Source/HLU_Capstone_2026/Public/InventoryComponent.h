@@ -63,7 +63,7 @@ public:
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Inventory")
     const TArray<FPilgrimItemData>& GetAllItems() const { return AllItems; }
 
-    // 세이브/로드용 데이터 접근 함수
+// 세이브/로드용 데이터 접근 함수
 public:
     // 세이브용 - OwnedItemCodes 반환
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Inventory")

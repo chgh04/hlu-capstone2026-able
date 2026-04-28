@@ -29,7 +29,7 @@ class HLU_CAPSTONE_2026_API UPilgrimSaveGame : public USaveGame
 public:
     UPilgrimSaveGame();
 
-    // 플레이어 상태
+// 플레이어 상태
 public:
     // 마지막으로 활성화된 체크포인트 위치 (부활 위치)
     UPROPERTY(VisibleAnywhere, Category = "Save_Player")
@@ -43,13 +43,13 @@ public:
     UPROPERTY(VisibleAnywhere, Category = "Save_Player")
     int32 PlayerCurrentPotionCount = 3;
 
-    // 체크포인트 상태
+ // 체크포인트 상태
 public:
     // 활성화된 체크포인트 이름 목록 - GetName()으로 식별
     UPROPERTY(VisibleAnywhere, Category = "Save_Checkpoint")
     TArray<FString> ActivatedCheckpointNames;
 
-    // 인벤토리 상태
+// 인벤토리 상태
 public:
     // 보유 아이템 코드 목록 - 유무 판단용
     UPROPERTY(VisibleAnywhere, Category = "Save_Inventory")
@@ -67,7 +67,7 @@ public:
     UPROPERTY(VisibleAnywhere, Category = "Save_Inventory")
     int32 ActiveRelicSlotCount = 1;
 
-    // 세이브 슬롯 설정
+// 세이브 슬롯 설정
 public:
     // 세이브 슬롯 이름 - UGameplayStatics::SaveGameToSlot에서 사용
     static const FString SaveSlotName;

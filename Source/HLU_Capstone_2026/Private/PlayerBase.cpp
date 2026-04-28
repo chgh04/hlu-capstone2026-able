@@ -77,6 +77,7 @@ void APlayerBase::BeginPlay()
         TargetArmLength = OriginArmLength;
         TargetSocketOffset = OriginSocketOffset;
     }
+
     GetWorldTimerManager().SetTimerForNextTick(this, &APlayerBase::LoadGame);
 }
 
