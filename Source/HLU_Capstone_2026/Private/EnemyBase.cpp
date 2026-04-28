@@ -4,7 +4,6 @@
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "BlueprintGameplayTagLibrary.h"
-#include "PlayerBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "PaperFlipbookComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -403,15 +402,19 @@ void AEnemyBase::OnDetectionBeginOverlap(UPrimitiveComponent* OverlappedComp, AA
 {   
     if (OtherActor && OtherActor != this)
     {
-        APlayerBase* OverlappedPlayer = Cast<APlayerBase>(OtherActor);
+        IGameplayTagAssetInterface* TagInterface = Cast<IGameplayTagAssetInterface>(OtherActor);
 
-        if (OverlappedPlayer)
+        if (TagInterface)
         {
-            TargetPlayer = OverlappedPlayer;
-            //UE_LOG(LogTemp, Warning, TEXT("AI: Player Detected!"));
+            FGameplayTag PlayerTag = FGameplayTag::RequestGameplayTag(FName("Entity.Team.Player"));
 
-            // 추적 상태(State)로 전환
-            CurrentState = EEnemyState::Chase;
+            if (TagInterface->HasMatchingGameplayTag(PlayerTag))
+            {
+                TargetPlayer = OtherActor;
+
+                // 추적 상태(State)로 전환
+                CurrentState = EEnemyState::Chase;
+            }
         }
     }
 }

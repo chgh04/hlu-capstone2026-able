@@ -223,7 +223,7 @@ void ADefaultCharBase::ExecuteAttackHit(AActor* TargetActor, TSubclassOf<class U
 
     if (ActualDamage > 0.0f)
     {
-        UE_LOG(LogTemp, Warning, TEXT("DefaultCharBase: Apply Hit Stop Custom"));
+        //UE_LOG(LogTemp, Warning, TEXT("DefaultCharBase: Apply Hit Stop Custom"));
         // 자신에게 히트스탑 적용
         ApplyHitStopCustom(0.1f, 0.1f);
     }
