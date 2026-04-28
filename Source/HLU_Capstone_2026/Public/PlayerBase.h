@@ -7,6 +7,7 @@
 #include "PlayerInteractComponent.h"
 #include "InteractReceiver.h"
 #include "PilgrimSaveGame.h"
+#include "SaveLoadComponent.h"
 #include "PlayerBase.generated.h"
 
 /**
@@ -64,6 +65,10 @@ protected:
     // 인벤토리 컴포넌트
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UInventoryComponent* InventoryComponent;
+
+    // 세이브/로드 및 체크포인트 활성화 목록 관리 컴포넌트
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    USaveLoadComponent* SaveLoadComponent;
 
     // 플레이어 상호작용 관리 컴포넌트 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -458,6 +463,19 @@ public:
 
 // 세이브/로드 관련 함수/변수 --------------------------------------
 public:
+
+    // 현재 포션 횟수 반환 - SaveLoadComponent에서 세이브 시 사용
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Player_Save")
+    int32 GetCurrentPotionCount() const { return CurrentPotionCount; }
+
+    // 포션 횟수 설정 - SaveLoadComponent에서 로드 시 사용
+    UFUNCTION(BlueprintCallable, Category = "Player_Save")
+    void SetCurrentPotionCount(int32 Count) { CurrentPotionCount = Count; }
+
+    // 리스폰 위치 설정 - SaveLoadComponent에서 로드 시 사용
+    UFUNCTION(BlueprintCallable, Category = "Player_Save")
+    void SetCurrentRespawnLocation(FVector Location) { CurrentRespawnLocation = Location; }
+
     // 게임 저장 - 체크포인트에서 호출
     UFUNCTION(BlueprintCallable, Category = "Player_Save")
     void SaveGame(FVector CheckpointLocation);

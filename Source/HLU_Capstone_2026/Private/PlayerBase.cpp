@@ -37,6 +37,9 @@ APlayerBase::APlayerBase()
 // 인벤토리 컴포넌트 생성
 InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
 
+// 세이브/로드 컴포넌트 생성
+SaveLoadComponent = CreateDefaultSubobject<USaveLoadComponent>(TEXT("SaveLoadComponent"));
+
 // 플레이어 상호작용 관리자 컴포넌트 생성 
 InteractComponent = CreateDefaultSubobject<UPlayerInteractComponent>(TEXT("InteractComponent"));
 
@@ -1294,76 +1297,21 @@ void APlayerBase::RefillPotion()
 
 void APlayerBase::SaveGame(FVector CheckpointLocation)
 {
-    UPilgrimSaveGame* SaveData = Cast<UPilgrimSaveGame>(
-        UGameplayStatics::CreateSaveGameObject(UPilgrimSaveGame::StaticClass())
-    );
-
-    if (!SaveData) return;
-
-    // 플레이어 상태 저장
-    FVector SaveLocation = CheckpointLocation;
-    SaveLocation.Z += 200.f;
-    SaveData->PlayerRespawnLocation = SaveLocation;
-    SaveData->PlayerCurrentPotionCount = CurrentPotionCount;
-
-    if (HealthComponent)
+    // 실제 로직은 SaveLoadComponent에 위임
+    if (SaveLoadComponent)
     {
-        SaveData->PlayerCurrentHealth = HealthComponent->GetCurrentHealth();
+        SaveLoadComponent->SaveGame(CheckpointLocation);
     }
-
-    // 인벤토리 저장
-    if (InventoryComponent)
-    {
-        SaveData->OwnedItemCodes = InventoryComponent->GetOwnedItemCodes();
-        SaveData->AllItems = InventoryComponent->GetAllItems();
-        SaveData->RelicSlots = InventoryComponent->GetRelicSlots();
-        SaveData->ActiveRelicSlotCount = InventoryComponent->GetActiveRelicSlotCount();
-    }
-
-    UGameplayStatics::SaveGameToSlot(SaveData, UPilgrimSaveGame::SaveSlotName, UPilgrimSaveGame::SaveUserIndex);
-
-    UE_LOG(LogTemp, Warning, TEXT("SaveGame: Game saved at %s"), *CheckpointLocation.ToString());
-    UE_LOG(LogTemp, Warning, TEXT("SaveGame: Saving %d items"), InventoryComponent ? InventoryComponent->GetAllItems().Num() : -1);
 }
 
 void APlayerBase::LoadGame()
 {
-    if (!UGameplayStatics::DoesSaveGameExist(UPilgrimSaveGame::SaveSlotName, UPilgrimSaveGame::SaveUserIndex))
+    // 실제 로직은 SaveLoadComponent에 위임
+    // BeginPlay에서 SetTimerForNextTick으로 한 프레임 딜레이 후 호출됨
+    if (SaveLoadComponent)
     {
-        UE_LOG(LogTemp, Warning, TEXT("LoadGame: No save file found"));
-        return;
+        SaveLoadComponent->LoadGame();
     }
-
-    UPilgrimSaveGame* SaveData = Cast<UPilgrimSaveGame>(
-        UGameplayStatics::LoadGameFromSlot(UPilgrimSaveGame::SaveSlotName, UPilgrimSaveGame::SaveUserIndex)
-    );
-
-    if (!SaveData) return;
-
-    // 플레이어 상태 복원
-    CurrentRespawnLocation = SaveData->PlayerRespawnLocation;
-    SetActorLocation(SaveData->PlayerRespawnLocation);
-    CurrentPotionCount = SaveData->PlayerCurrentPotionCount;
-
-    if (HealthComponent)
-    {
-        HealthComponent->HealHealth(SaveData->PlayerCurrentHealth - HealthComponent->GetCurrentHealth());
-    }
-
-    // 인벤토리 복원
-    if (InventoryComponent)
-    {
-        InventoryComponent->LoadFromSaveData(
-            SaveData->OwnedItemCodes,
-            SaveData->AllItems,
-            SaveData->RelicSlots,
-            SaveData->ActiveRelicSlotCount
-        );
-    }
-
-    UE_LOG(LogTemp, Warning, TEXT("LoadGame: Game loaded, respawn at %s"), *SaveData->PlayerRespawnLocation.ToString());
-    UE_LOG(LogTemp, Warning, TEXT("LoadGame: Loaded %d items from save"),
-        InventoryComponent ? InventoryComponent->GetAllItems().Num() : -1);
 }
 
 void APlayerBase::SetCameraOverride(float NewArmLength, FVector NewSocketOffset)

@@ -1,5 +1,6 @@
 #include "CheckpointBase.h"
 #include "HealthComponent.h"
+#include "SaveLoadComponent.h"
 
 ACheckpointBase::ACheckpointBase()
 {
@@ -54,16 +55,19 @@ void ACheckpointBase::ActivateCheckpoint(AActor* Interactor)
 {
     bIsActivated = true;
 
-    // 활성화 이펙트 재생 (자식 BP에서 구현)
     PlayActivateEffect();
 
-    // 나이아가라 이펙트 켜기
-    /*if (InteractEffect)
+    // 플레이어의 SaveLoadComponent에 이름 등록
+    if (Interactor)
     {
-        InteractEffect->Activate(true);
-    }*/
+        USaveLoadComponent* SaveComp = Interactor->FindComponentByClass<USaveLoadComponent>();
+        if (SaveComp)
+        {
+            SaveComp->RegisterActivatedCheckpoint(CheckpointName);
+        }
+    }
 
-    UE_LOG(LogTemp, Warning, TEXT("Checkpoint: Activated!"));
+    UE_LOG(LogTemp, Warning, TEXT("Checkpoint: Activated! Name: %s"), *CheckpointName);
 }
 
 //댕글링 포인터 크래쉬 방지
