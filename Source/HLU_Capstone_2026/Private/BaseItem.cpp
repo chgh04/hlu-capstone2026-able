@@ -5,6 +5,7 @@
 #include "BlueprintGameplayTagLibrary.h"
 #include "InteractReceiver.h"
 #include "InventoryComponent.h"
+#include "SaveLoadComponent.h"
 
 ABaseItem::ABaseItem()
 {
@@ -127,6 +128,13 @@ void ABaseItem::ExecutePickup(AActor* Picker)
         if (Inventory)
         {
             Inventory->AddItem(ItemData);
+        }
+
+        // 아이템 습득 시 자동저장 - 죽어도 아이템 유지
+        USaveLoadComponent* SaveComp = Picker->FindComponentByClass<USaveLoadComponent>();
+        if (SaveComp)
+        {
+            SaveComp->SaveCurrentState();
         }
     }
 
