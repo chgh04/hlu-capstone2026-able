@@ -63,6 +63,25 @@ public:
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Inventory")
     const TArray<FPilgrimItemData>& GetAllItems() const { return AllItems; }
 
+    // 세이브/로드용 데이터 접근 함수
+public:
+    // 세이브용 - OwnedItemCodes 반환
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Inventory")
+    const TArray<FName>& GetOwnedItemCodes() const { return OwnedItemCodes; }
+
+    // 세이브용 - RelicSlots 반환
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Inventory")
+    const TArray<FPilgrimItemData>& GetRelicSlots() const { return RelicSlots; }
+
+    // 로드용 - 세이브 데이터로 인벤토리 복원
+    UFUNCTION(BlueprintCallable, Category = "Inventory")
+    void LoadFromSaveData(
+        const TArray<FName>& InOwnedItemCodes,
+        const TArray<FPilgrimItemData>& InAllItems,
+        const TArray<FPilgrimItemData>& InRelicSlots,
+        int32 InActiveRelicSlotCount
+    );
+
 private:
     // 보유 아이템 코드 목록 - 유무 판단용 (세이브/로드 핵심 데이터)
     UPROPERTY(VisibleAnywhere, Category = "Inventory")

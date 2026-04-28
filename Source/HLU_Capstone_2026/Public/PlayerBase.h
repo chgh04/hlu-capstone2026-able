@@ -5,6 +5,7 @@
 #include "CheckpointInteractable.h"
 #include "InventoryComponent.h"
 #include "InteractReceiver.h"
+#include "PilgrimSaveGame.h"
 #include "PlayerBase.generated.h"
 
 /**
@@ -37,6 +38,8 @@ protected:
 public:
     // 체크포인트 휴식 시 호출될 함수
     virtual void RestAtCheckpoint_Implementation(float HealPercentage, AActor* CheckpointRef) override;
+
+    virtual void SaveAtCheckpoint_Implementation(FVector CheckpointLocation) override;
 
     // IInteractReceiver - 아이템 등록/해제
     virtual void RegisterNearbyItem_Implementation(AActor* Item) override;
@@ -460,6 +463,16 @@ public:
     // 회복약 횟수 초기화 (외부 체크포인트 액터에서 접근하여 호출해야 하므로 public)
     UFUNCTION(BlueprintCallable, Category = "Player_Potion")
     void RefillPotion();
+
+// 세이브/로드 관련 함수/변수 --------------------------------------
+public:
+    // 게임 저장 - 체크포인트에서 호출
+    UFUNCTION(BlueprintCallable, Category = "Player_Save")
+    void SaveGame(FVector CheckpointLocation);
+
+    // 게임 로드 - BeginPlay에서 세이브 파일 있으면 자동 호출
+    UFUNCTION(BlueprintCallable, Category = "Player_Save")
+    void LoadGame();
 
 // 플레이어 카메라 및 상호작용 관련 함수/변수 --------------------------------------
 protected:

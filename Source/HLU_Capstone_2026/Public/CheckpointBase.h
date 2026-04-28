@@ -42,6 +42,14 @@ public:
     // 플레이어가 해당 체크포인트에서 휴식중인지
     UPROPERTY(VisibleAnywhere, Category = "Checkpoint")
     bool bIsResting = false;
+    // 체크포인트 이름을 세이브 데이터에 기록 - 활성화 목록 복원용
+    UFUNCTION(BlueprintCallable, Category = "Checkpoint")
+    const FString& GetCheckpointName() const { return CheckpointName; }
+
+protected:
+    // 이 체크포인트의 고유 이름 - 디테일 패널에서 설정
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Checkpoint")
+    FString CheckpointName = TEXT("Checkpoint_Default");
 
 // 이펙트 및 사운드
 protected:
@@ -60,4 +68,7 @@ protected:
     // 휴식 종료 시 블루프린트에서 DoF 타임라인 Reverse를 실행할 이벤트
     UFUNCTION(BlueprintImplementableEvent, Category = "Checkpoint")
     void OnRestEndedVisuals();
+//댕글링 포인터 크래쉬 방지
+protected:
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 };

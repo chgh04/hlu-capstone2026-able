@@ -46,6 +46,8 @@ void ACheckpointBase::EndCheckpointRest_Implementation()
 
         // 휴식 플래그 초기화
         bIsResting = false;
+        ICheckpointInteractable::Execute_RestAtCheckpoint(Interactor, HealPercent);
+        ICheckpointInteractable::Execute_SaveAtCheckpoint(Interactor, GetActorLocation());
     }
 }
 
@@ -63,4 +65,10 @@ void ACheckpointBase::ActivateCheckpoint(AActor* Interactor)
     }*/
 
     UE_LOG(LogTemp, Warning, TEXT("Checkpoint: Activated!"));
+}
+
+//댕글링 포인터 크래쉬 방지
+void ACheckpointBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    Super::EndPlay(EndPlayReason);
 }

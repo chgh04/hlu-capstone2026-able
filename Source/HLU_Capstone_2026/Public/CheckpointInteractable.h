@@ -23,4 +23,8 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
 	void EndCheckpointRest();
+
+	// 체크포인트 위치로 게임 저장
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
+	void SaveAtCheckpoint(FVector CheckpointLocation);
 };
