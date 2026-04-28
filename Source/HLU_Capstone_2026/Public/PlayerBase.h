@@ -4,6 +4,7 @@
 #include "DefaultCharBase.h"
 #include "CheckpointInteractable.h"
 #include "InventoryComponent.h"
+#include "PlayerInteractComponent.h"
 #include "InteractReceiver.h"
 #include "PilgrimSaveGame.h"
 #include "PlayerBase.generated.h"
@@ -31,14 +32,10 @@ protected:
 
     virtual void Tick(float DeltaTime) override;
 
-    // 댕글링 포인터 크래시 방지 - NearbyItems/NearbyInteractables 배열에 이미 삭제된 액터 포인터가 남아있어서 생기는 크래시
-    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-
 // 인터페이스 구현 --------------------------------------
 public:
     // 체크포인트 휴식 시 호출될 함수
     virtual void RestAtCheckpoint_Implementation(float HealPercentage, AActor* CheckpointRef) override;
-
     virtual void SaveAtCheckpoint_Implementation(FVector CheckpointLocation) override;
 
     // IInteractReceiver - 아이템 등록/해제
@@ -54,15 +51,6 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Interaction")
     void HandleInteractInput();
 
-private:
-    // 근처 아이템 목록 - RegisterNearbyItem으로 등록, F키 시 순회
-    UPROPERTY()
-    TArray<AActor*> NearbyItems;
-
-    // 근처 인터랙터블 목록 - RegisterNearbyInteractable으로 등록, F키 시 순회
-    UPROPERTY()
-    TArray<AActor*> NearbyInteractables;
-
 // 컴포넌트 생성 --------------------------------------
 protected:
     // 카메라 암
@@ -76,6 +64,10 @@ protected:
     // 인벤토리 컴포넌트
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UInventoryComponent* InventoryComponent;
+
+    // 플레이어 상호작용 관리 컴포넌트 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UPlayerInteractComponent* InteractComponent;
 
     // 지속형 나이아가라 컴포넌트
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_VFX")
@@ -515,17 +507,9 @@ protected:
     // 매 틱마다 호출할 플레이어 카메라 보간 함수
     void UpdateCameraSettingOverride(float DeltaTime);
 
-    // 플레이어 상호작용 플래그
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player_Interaction")
-    bool bIsInteracting = false;
-
     // 상호작용 강제 중단(Escape)
     UFUNCTION(BlueprintCallable, Category = "Player_Interaction")
     void CancelInteraction();
-
-    // 플레이어가 현재 휴식중인 체크포인터를 기억할 포인터 변수
-    UPROPERTY()
-    AActor* CurrentRestingCheckpoint;
 
 // 기타 추가 기능 --------------------------------------
 protected:
@@ -554,6 +538,16 @@ protected:
 
     // 플레이어 벽 점프 이후 입력 잠금 타이머 관리자
     FTimerHandle WallJumpLockoutTimerHandle;
+
+// 델리게이트 연결 --------------------------------------
+private:
+    // PlayerInteractComponent 카메라 연출 시작 델리게이트 연결
+    UFUNCTION()
+    void OnInteractStartedHandle(FVector MidpointOffset, AActor* TargetActor);
+
+    // PlayerInteractComponent 카메라 연출 종료 델리게이트 연결
+    UFUNCTION()
+    void OnInteractEndedHandle();
 
 // VFX 및 오디오
 protected:

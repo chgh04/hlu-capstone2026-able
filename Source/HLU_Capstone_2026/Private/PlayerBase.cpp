@@ -34,27 +34,30 @@ APlayerBase::APlayerBase()
     MainCamera->SetupAttachment(CameraString, USpringArmComponent::SocketName);
     MainCamera->bUsePawnControlRotation = false;
 
-    // 인벤토리 컴포넌트 생성
-    InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
+// 인벤토리 컴포넌트 생성
+InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
 
-    // 캐릭터 컴포넌트에서 앉기 기능 활성화
-    GetCharacterMovement()->GetNavAgentPropertiesRef().bCanCrouch = true;
+// 플레이어 상호작용 관리자 컴포넌트 생성 
+InteractComponent = CreateDefaultSubobject<UPlayerInteractComponent>(TEXT("InteractComponent"));
 
-    // 캐릭터가 않은 상태에서도 절벽 아래로 떨어질 수 있도록 조정(슬라이딩 시 떨어짐 허용)
-    GetCharacterMovement()->bCanWalkOffLedgesWhenCrouching = true;
+// 캐릭터 컴포넌트에서 앉기 기능 활성화
+GetCharacterMovement()->GetNavAgentPropertiesRef().bCanCrouch = true;
 
-    // 나이아가라 컴포넌트 생성
-    PlayerTrackingNiagaraVFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("PlayerTrackingVFX"));
-    PlayerTrackingNiagaraVFX->SetupAttachment(GetSprite());
-    PlayerTrackingNiagaraVFX->bAutoActivate = false;
+// 캐릭터가 않은 상태에서도 절벽 아래로 떨어질 수 있도록 조정(슬라이딩 시 떨어짐 허용)
+GetCharacterMovement()->bCanWalkOffLedgesWhenCrouching = true;
 
-    // 플레이어 라이트 생성
-    PlayerLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("PlayerLight"));
-    PlayerLight->SetupAttachment(GetSprite());
-    PlayerLight->SetRelativeLocation(FVector(0.f, 0.f, 92.f));
-    PlayerLight->Intensity = 300.0f; 
-    PlayerLight->AttenuationRadius = 250.0f;
-    PlayerLight->CastShadows = false;
+// 나이아가라 컴포넌트 생성
+PlayerTrackingNiagaraVFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("PlayerTrackingVFX"));
+PlayerTrackingNiagaraVFX->SetupAttachment(GetSprite());
+PlayerTrackingNiagaraVFX->bAutoActivate = false;
+
+// 플레이어 라이트 생성
+PlayerLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("PlayerLight"));
+PlayerLight->SetupAttachment(GetSprite());
+PlayerLight->SetRelativeLocation(FVector(0.f, 0.f, 92.f));
+PlayerLight->Intensity = 300.0f;
+PlayerLight->AttenuationRadius = 250.0f;
+PlayerLight->CastShadows = false;
 }
 
 void APlayerBase::BeginPlay()
@@ -78,6 +81,13 @@ void APlayerBase::BeginPlay()
         TargetSocketOffset = OriginSocketOffset;
     }
 
+    // PlayerInteractComponent의 카메라 연출 델리게이트 연결
+    if (InteractComponent)
+    {
+        InteractComponent->OnInteractStarted.AddDynamic(this, &APlayerBase::OnInteractStartedHandle);
+        InteractComponent->OnInteractEnded.AddDynamic(this, &APlayerBase::OnInteractEndedHandle);
+    }
+
     GetWorldTimerManager().SetTimerForNextTick(this, &APlayerBase::LoadGame);
 }
 
@@ -87,7 +97,7 @@ void APlayerBase::Tick(float DeltaTime)
 
     // Movement 관련 Tick 검사
     if (MovementComp)
-    {   
+    {
         ChangeGravity();
 
         // 벽타기 기능 함수
@@ -99,7 +109,7 @@ void APlayerBase::Tick(float DeltaTime)
 
     // 회피효과(고스트트레일 스폰) 관련 Tick 검사
     if (bIsDodging && LastGhostSpawnLocation != FVector::Zero())
-    {   
+    {
         FVector CurrentLocation = GetActorLocation();
 
         // 루트 연산 제거
@@ -122,15 +132,18 @@ void APlayerBase::Tick(float DeltaTime)
 }
 
 void APlayerBase::RestAtCheckpoint_Implementation(float HealPercentage, AActor* CheckpointRef)
-{       
+{
     // 이미 상호작용중이라면 반환
-    if (bIsInteracting)
+    if (InteractComponent && InteractComponent->GetIsInteracting())
     {
         return;
     }
-    
-    // 전달받은 체크포인트 포인터를 저장
-    CurrentRestingCheckpoint = CheckpointRef;
+
+    if (InteractComponent)
+    {   
+        // 전달받은 체크포인트 포인터를 저장
+        InteractComponent->SetRestingCheckpoint(CheckpointRef);
+    }
 
     // 체력 회복
     if (HealthComponent)
@@ -155,71 +168,35 @@ void APlayerBase::SaveAtCheckpoint_Implementation(FVector CheckpointLocation)
 }
 
 void APlayerBase::RegisterNearbyItem_Implementation(AActor* Item)
-{
-    if (Item)
-    {
-        NearbyItems.AddUnique(Item);
-    }
+{   
+    // 컴포넌트로 전달
+    if (InteractComponent) { InteractComponent->RegisterItem(Item); }
 }
 
 void APlayerBase::UnregisterNearbyItem_Implementation(AActor* Item)
-{
-    NearbyItems.Remove(Item);
+{   
+    // 컴포넌트로 전달
+    if (InteractComponent) { InteractComponent->UnregisterItem(Item); }
 }
 
 void APlayerBase::RegisterNearbyInteractable_Implementation(AActor* Interactable)
-{
-    if (Interactable)
-    {
-        NearbyInteractables.AddUnique(Interactable);
-    }
+{   
+    // 컴포넌트로 전달
+    if (InteractComponent) { InteractComponent->RegisterInteractable(Interactable); }
 }
 
 void APlayerBase::UnregisterNearbyInteractable_Implementation(AActor* Interactable)
-{
-    NearbyInteractables.Remove(Interactable);
+{   
+    // 컴포넌트로 전달
+    if (InteractComponent) { InteractComponent->UnregisterInteractable(Interactable); }
 }
 
 void APlayerBase::HandleInteractInput()
 {   
-    // 인터랙터블 먼저 처리 (NPC, 체크포인트 등이 아이템보다 우선)
-    // 복사본으로 순회 - 순회 중 배열이 변경되어도 안전
-    TArray<AActor*> InteractablesCopy = NearbyInteractables;
-    if (InteractablesCopy.Num() > 0)
-    {
-        AActor* Target = NearbyInteractables[0];
-        if (Target && Target->Implements<UInteractReceiver>())
-        {   
-            // 플레이어 기준 플레이어와 오브젝트 사이 중간 지점 계산
-            FVector Midpoint = (GetActorLocation() + Target->GetActorLocation()) * 0.5f;
-            FVector RelativeOffset = Midpoint - GetActorLocation();
-            RelativeOffset.Z = OriginSocketOffset.Z - 20.f;
-
-            // 상호작용 상태 돌입 -> 상호작용 상태 돌입은 IntertableBase의 인터페이스 호출로 인한 함수에서 플래그 전환
-            // bIsInteracting = true;
-
-            // 카메라 줌 인 기능 시작
-            PlayInteractCameraZoomIn(RelativeOffset, Target);
-
-            // 타겟의 기능 실행
-            IInteractReceiver::Execute_TryInteract(Target, this);
-
-            // 상호작용 플래그 전환
-            bIsInteracting = true;
-
-            return;
-        }
-    }
-
-    // 아이템 처리 - IRootable::TryPickup 호출 
-    // 복사본으로 순회 - 습득 시 NearbyItems가 변경되어도 안전
-    TArray<AActor*> ItemsCopy = NearbyItems;
-    for (AActor* Item : ItemsCopy)
-    {
-        if (Item && Item->Implements<URootable>())
-        {
-            IRootable::Execute_TryPickup(Item, this);
-        }
+    // 컴포넌트로 전달
+    if (InteractComponent) 
+    { 
+        InteractComponent->HandleInteractInput(this, OriginSocketOffset); 
     }
 }
 
@@ -440,11 +417,11 @@ void APlayerBase::ResetCombo()
 
         if (TryAirDash())
         {
-            UE_LOG(LogTemp, Warning, TEXT("Try Air Dash!"));
+            //UE_LOG(LogTemp, Warning, TEXT("Try Air Dash!"));
         }
         else
         {   
-            UE_LOG(LogTemp, Warning, TEXT("Try Ground Dash!"));
+            //UE_LOG(LogTemp, Warning, TEXT("Try Ground Dash!"));
             TryGroundDodge(DodgeDuration);
         }
 
@@ -633,7 +610,7 @@ void APlayerBase::TryJump()
         if (bIsDodging)
         {
             bSaveJump = true;
-            UE_LOG(LogTemp, Warning, TEXT("Jump Buffered during Dash!"));
+            //UE_LOG(LogTemp, Warning, TEXT("Jump Buffered during Dash!"));
 
             FTimerHandle BufferTimer;
             GetWorldTimerManager().SetTimer(BufferTimer, FTimerDelegate::CreateLambda([this]() {
@@ -659,7 +636,7 @@ void APlayerBase::TryJump()
         // 조절된 수평 속도에 기존 Z축 속도를 합쳐서 덮어씌우기
         MovementComp->Velocity = FVector(HorizontalVelocity.X, HorizontalVelocity.Y, MovementComp->Velocity.Z);
     }
-    UE_LOG(LogTemp, Warning, TEXT("Dash-Jump Speed Clamped to %f! Now Speed is %f"), MaxAllowedJumpSpeed, MovementComp->Velocity.X);
+    //UE_LOG(LogTemp, Warning, TEXT("Dash-Jump Speed Clamped to %f! Now Speed is %f"), MaxAllowedJumpSpeed, MovementComp->Velocity.X);
 
     // 6. 이단점프 실행 로직
     if (MovementComp->IsFalling())
@@ -680,7 +657,7 @@ void APlayerBase::TryJump()
     {
         bIsJumping = true;  // 점프 플래그 활성화
         CurrentJumpCount = 1;
-        UE_LOG(LogTemp, Warning, TEXT("Ground Jump Start!"));
+        //UE_LOG(LogTemp, Warning, TEXT("Ground Jump Start!"));
 
         // 만약 Crouched때문에 엔진 내부에서 점프가 안될 경우, Launch로 캐릭터 강제 점프
         if (bIsCrouched)
@@ -725,7 +702,7 @@ void APlayerBase::Landed(const FHitResult& Hit)
     {
         bSaveDodge = false;
 
-        UE_LOG(LogTemp, Warning, TEXT("Landing Dodge Executed by Buffer!"));
+        //UE_LOG(LogTemp, Warning, TEXT("Landing Dodge Executed by Buffer!"));
         TryGroundDodge(DodgeDuration);
     }
 
@@ -818,13 +795,13 @@ bool APlayerBase::TryDodge(float Time)
         {
             // 회피 선입력 트리거를 활성화
             bSaveDodge = true;
-            UE_LOG(LogTemp, Warning, TEXT("Buffered Dodge Input"));
+            //UE_LOG(LogTemp, Warning, TEXT("Buffered Dodge Input"));
 
             // 0.n초 뒤 예약 자동 해제
             FTimerHandle BufferTimer;
             GetWorldTimerManager().SetTimer(BufferTimer, FTimerDelegate::CreateLambda([this]() {
                 bSaveDodge = false;
-                UE_LOG(LogTemp, Warning, TEXT("Buffered Dodge Input Ended"));
+                //UE_LOG(LogTemp, Warning, TEXT("Buffered Dodge Input Ended"));
                 }), 0.25f, false);
 
             // 회피가 실행되지 않았으니 false 리턴
@@ -899,7 +876,7 @@ void APlayerBase::DodgeEnd()
 
 bool APlayerBase::TryAirDash()
 {   
-    UE_LOG(LogTemp, Warning, TEXT("Air Dash Tried!"));
+    //UE_LOG(LogTemp, Warning, TEXT("Air Dash Tried!"));
 
     Super::DodgeStart(DodgeDuration);
 
@@ -937,7 +914,7 @@ void APlayerBase::AirDashStart()
     PlayDodgeAnimation();
     LastGhostSpawnLocation = GetActorLocation();
 
-    UE_LOG(LogTemp, Warning, TEXT("AIr Dash Called, AirDashCount: %d"), CurrentAirDashCount);
+    //UE_LOG(LogTemp, Warning, TEXT("AIr Dash Called, AirDashCount: %d"), CurrentAirDashCount);
 }
 
 void APlayerBase::AirDashEnd()
@@ -1324,7 +1301,6 @@ void APlayerBase::SaveGame(FVector CheckpointLocation)
     if (!SaveData) return;
 
     // 플레이어 상태 저장
-    // 플레이어 상태 저장
     FVector SaveLocation = CheckpointLocation;
     SaveLocation.Z += 200.f;
     SaveData->PlayerRespawnLocation = SaveLocation;
@@ -1407,7 +1383,7 @@ void APlayerBase::ResetCameraOverride()
 void APlayerBase::UpdateCameraSettingOverride(float DeltaTime)
 {   
     // 상호작용중이면 적용하지 않음
-    if (bIsInteracting)
+    if (InteractComponent && InteractComponent->GetIsInteracting())
     {
         return;
     }
@@ -1441,29 +1417,10 @@ void APlayerBase::UpdateCameraSettingOverride(float DeltaTime)
 
 void APlayerBase::CancelInteraction()
 {   
-    // 상호작용 도중일때만 호출됨
-    if (bIsInteracting)
-    {   
-        // 만약 체크포인트 포인터가 비어있지 않다면 체크포인트에게 상호작용 종료를 전달
-        if (CurrentRestingCheckpoint)
-        {
-            if (CurrentRestingCheckpoint->Implements<UCheckpointInteractable>())
-            {   
-                // 이때, 체크포인트와 상호작용 하지 않았더라도 체크포인트 포인터에서 이를 무시함
-                ICheckpointInteractable::Execute_EndCheckpointRest(CurrentRestingCheckpoint);
-            }
-
-            // 포인터 비우기
-            CurrentRestingCheckpoint = nullptr; 
-        }
-
-        // 상호작용 플래그 초기화
-        bIsInteracting = false;
-
-        // 카메라 줌아웃 실행 
-        PlayInteractCameraZoomOut();
-
-        UE_LOG(LogTemp, Warning, TEXT("Interaction Cancelled by ESC"));
+    // 컴포넌트로 전달
+    if (InteractComponent) 
+    { 
+        InteractComponent->CancelInteraction();
     }
 }
 
@@ -1471,7 +1428,7 @@ bool APlayerBase::IsCharacterCanAction()
 {
     bool bIsCanAct = Super::IsCharacterCanAction();
 
-    bIsCanAct = bIsCanAct && !bIsInteracting;
+    bIsCanAct = bIsCanAct && !(InteractComponent && InteractComponent->GetIsInteracting());
 
     return bIsCanAct;
 }
@@ -1547,6 +1504,18 @@ void APlayerBase::ApplySpriteSortAmount()
     }
 }
 
+void APlayerBase::OnInteractStartedHandle(FVector MidpointOffset, AActor* TargetActor)
+{
+    // 컴포넌트에서 신호가 오면 기존에 만들어둔 BP 이벤트를 실행
+    PlayInteractCameraZoomIn(MidpointOffset, TargetActor);
+}
+
+void APlayerBase::OnInteractEndedHandle()
+{   
+    // 컴포넌트에서 신호가 오면 기존에 만들어둔 BP 이벤트를 실행
+    PlayInteractCameraZoomOut();
+}
+
 void APlayerBase::SpawnGhostTrail()
 {   
     if (!GhostActorClass)
@@ -1610,12 +1579,3 @@ void APlayerBase::PlayNiagaraCompEffect(UNiagaraSystem* NewEffect)
     UE_LOG(LogTemp, Warning, TEXT("Player: Niagara Activated!"));
 }
 
-//댕글링 포인터 크래시 방지
-void APlayerBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
-{
-    Super::EndPlay(EndPlayReason);
-
-    // 종료 시 배열 비우기 - 댕글링 포인터 방지
-    NearbyItems.Empty();
-    NearbyInteractables.Empty();
-}
