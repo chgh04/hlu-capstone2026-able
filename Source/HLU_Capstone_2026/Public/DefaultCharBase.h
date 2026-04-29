@@ -307,9 +307,13 @@ protected:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Player/Enemy_Status")
 	virtual bool IsCharacterCanAction();
 
-
 	UFUNCTION(BlueprintCallable, Category = "Player/Enemy_Status")
 	virtual void ResetCombatStates();
+
+public:
+	// 공격 플래그 반환 함수
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Player/Enemy_Combat")
+	bool GetIsAttacking() { return bIsAttacking; }
 
 // VFX 및 오디오
 protected:

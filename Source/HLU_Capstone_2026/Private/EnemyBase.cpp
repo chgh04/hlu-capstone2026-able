@@ -321,6 +321,74 @@ void AEnemyBase::ResetAttackCooldown()
     //UE_LOG(LogTemp, Warning, TEXT("Enemy Attack Cooldown Ready!"));
 }
 
+void AEnemyBase::LaunchTowardsTarget(bool bIsSimpleLaunch, float SimpleLaunchZForce, AActor* TargetActor, float ArcHeight, bool bLaunchReverse)
+{
+    if (!TargetActor || !MovementComp)
+    {
+        return;
+    }
+
+    // 시작지점, 도착지점 설정 
+    FVector StartLoc = GetActorLocation();
+    FVector EndLoc = TargetActor->GetActorLocation();
+
+    FVector OutLaunchVelocity;
+
+    // 적을 향해 도약하지 않을 경우
+    if (bIsSimpleLaunch)
+    {
+        OutLaunchVelocity = (StartLoc - EndLoc).GetSafeNormal();
+
+        // 적을 향해 도약하지 않는 경우엔 최대 높이를 강도로 사용
+        OutLaunchVelocity *= ArcHeight;
+        OutLaunchVelocity.Z = SimpleLaunchZForce;
+
+        LaunchCharacter(OutLaunchVelocity, true, true);
+    }
+    // 적을 향해 도약하는 경우
+    else
+    {
+        // 현재 높이를 최대높이에 반영
+        ArcHeight = StartLoc.Z + ArcHeight;
+
+        // 탄도학 계산 라이브러리
+        bool bSuccess = UGameplayStatics::SuggestProjectileVelocity_CustomArc(
+            this,
+            OutLaunchVelocity,   // 계산 결과가 담길 변수
+            StartLoc,           // 출발지
+            EndLoc,             // 목적지
+            MovementComp->GetGravityZ(),    // 현재 캐릭터의 중력값
+            ArcHeight           // 최고점 높이
+        );
+
+        if (bSuccess)
+        {
+            // Y축 고정이 필요하다면 여기서 세팅
+            // OutLaunchVelocity.Y = {기존 캐릭터 y축 위치};
+
+            // 플레이어를 바라보도록 전환
+            FRotator LookRot = (EndLoc - StartLoc).Rotation();
+            LookRot.Pitch = 0.0f; LookRot.Roll = 0.0f;
+            SetActorRotation(LookRot);
+
+            if (!bLaunchReverse)
+            {
+                OutLaunchVelocity.X *= -1;
+            }
+
+            // 계산 속도로 캐릭터 발사
+            LaunchCharacter(OutLaunchVelocity, true, true);
+
+            UE_LOG(LogTemp, Warning, TEXT("AI: Pounce Attack Launched with Velocity %s"), *OutLaunchVelocity.ToString());
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("AI: Launch Calculation Failed! (Target might be unreachable)"));
+        }
+    }
+    
+}
+
 bool AEnemyBase::GetHit(const FDamageData& DamageData)
 {
     // 부모 로직 실행, 피격이 유효하지 않았다면 리턴

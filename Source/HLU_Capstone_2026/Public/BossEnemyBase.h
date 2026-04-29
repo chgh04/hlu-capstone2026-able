@@ -51,6 +51,7 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Enemy_Boss_Visuals")
 	void OnBossGroggyEnded();
 
+// 보스 AI 관련 함수/변수
 public:
 	// 타겟 고정 함수
 	UFUNCTION(BlueprintCallable, Category = "Enemy_Boss_AI")
@@ -63,7 +64,14 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Enemy_Boss_AI")
 	void ExecuteBossPattern(FName PatternName);
 
-// 보스 AI 관련 함수/변수
+	// 캐릭터 행동이 종료되었을 때 호출됨, 변수 등 초기화
+	UFUNCTION(BlueprintCallable, Category = "Enemy_Boss_AI")
+	void BossActionEnd();
+
+	// 고정된 타겟 반환 함수
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Enemy_Boss_AI")
+	AActor* GetFixedTargetPlayer() const { return FixedTargetPlayer; }
+
 protected:
 	// 한 번 인식한 플레이어를 영구적으로 기억할 포인터
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Enemy_Boss_AI")

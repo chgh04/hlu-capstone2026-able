@@ -85,6 +85,10 @@ protected:
 
     // 쿨타임 초기화 함수
     void ResetAttackCooldown();
+
+    // 타겟을 향해 포물선으로 도약하는 함수, 타겟 액터와 최대 도약 높이를 인자로 받음
+    UFUNCTION(BlueprintCallable, Category = "Enemy_Combat")
+    void LaunchTowardsTarget(bool bIsSimpleLaunch = false, float SimpleLaunchZForce = 300.0f, AActor* TargetActor = nullptr, float ArcHeight = 300.0f, bool bLaunchReverse = true); 
     
 public:
     // 캐릭터의 공격 시 전진성 변경 함수

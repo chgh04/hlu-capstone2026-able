@@ -49,25 +49,26 @@ private:
 	void RecoverFromGroggy();
 		
 // 보스 전용 스탯 변수
-protected:
+public:
 	// 그로기 게이지 최댓값
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy_Boss_Stats")
 	float MaxGroggy = 20.0f;
-
-	// 현재 그로기 게이지 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Enemy_Boss_Stats")
-	float CurrentGroggy;
 
 	// 그로기 상태 유지 시간 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy_Boss_Stats")
 	float GroggyDuration = 4.0f;
 
+private:
 	// 현재 그로기 상태인지에 대한 여부
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Enemy_Boss_Stats")
+	UPROPERTY(VisibleAnywhere, Category = "Enemy_Boss_Stats")
 	bool bIsGroggy = false;
 
+	// 현재 그로기 게이지 
+	UPROPERTY(VisibleAnywhere, Category = "Enemy_Boss_Stats")
+	float CurrentGroggy;
+
 // 기타 기능
-protected:
+private:
 	// 그로기 회복 타이머
 	FTimerHandle GroggyRecoveryTimerHandle;
 };

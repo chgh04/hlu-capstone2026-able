@@ -178,4 +178,7 @@ private:
 	// 이동할 목표 거리 
 	float CurrentMoveTargetDistance = 0.0f;
 
+	// 타겟 방향 회전 함수
+	
+
 };

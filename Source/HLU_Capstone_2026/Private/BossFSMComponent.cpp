@@ -211,7 +211,7 @@ EBossActionCategory UBossFSMComponent::EvaluateCategories(float DistanceToPlayer
 
 		if (RouletteBall <= AccumulatedWeight)
 		{
-			UE_LOG(LogTemp, Log, TEXT("Boss AI: Category %d selected with Weight %f"), (int32)Pair.Key, Pair.Value);
+			UE_LOG(LogTemp, Warning, TEXT("Boss AI: Category %d selected with Weight %f"), (int32)Pair.Key, Pair.Value);
 			return Pair.Key;
 		}
 		/*
@@ -255,8 +255,8 @@ void UBossFSMComponent::StartFSM()
 
 void UBossFSMComponent::EnterIdleState()
 {
-	// 이미 죽었거나 그로기면 대기 상태로 가지 않음
-	if (CurrentState == EBossFSMState::Dead || CurrentState == EBossFSMState::Groggy)
+	// 이미 죽었다면 대기 상태로 가지 않음
+	if (CurrentState == EBossFSMState::Dead)
 	{
 		return;
 	}
@@ -307,8 +307,18 @@ void UBossFSMComponent::DecideNextAction()
 		return;
 	}
 
-	// 플레이어와의 거리 계산
-	float Distance = FVector::Dist(BossOwner->GetActorLocation(), BossOwner->GetBossTarget()->GetActorLocation());
+	float Distance = 0.0f;
+
+	if (BossOwner && BossOwner->GetBossTarget())
+	{
+		// 플레이어와의 거리 계산
+		Distance = FVector::Dist(BossOwner->GetActorLocation(), BossOwner->GetBossTarget()->GetActorLocation());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Boss AI: No Fixed Target! return FSM"));
+		return;
+	}
 
 	// 행동 선택 로직을 거리를 주고 호출
 	FName NextPatternName = SelectNextPattern(Distance);
@@ -318,6 +328,15 @@ void UBossFSMComponent::DecideNextAction()
 	{
 		EnterIdleState();
 		return;
+	}
+
+	// 플레이어 방향 보기
+	FVector LookDirection = BossOwner->GetBossTarget()->GetActorLocation() - BossOwner->GetActorLocation();
+	LookDirection.Z = 0.0f;
+
+	if (!LookDirection.IsNearlyZero())
+	{
+		BossOwner->SetActorRotation(LookDirection.Rotation());
 	}
 
 	// 선택된 패턴의 구조체 가져오기
@@ -334,15 +353,6 @@ void UBossFSMComponent::DecideNextAction()
 	}
 	else // 이동 이외의 행동일 경우
 	{	
-		// 플레이어 방향 보기
-		FVector LookDirection = BossOwner->GetBossTarget()->GetActorLocation() - BossOwner->GetActorLocation();
-		LookDirection.Z = 0.0f;
-
-		if (!LookDirection.IsNearlyZero())
-		{
-			BossOwner->SetActorRotation(LookDirection.Rotation());
-		}
-
 		// 행동 실행 상태로 전환
 		CurrentState = EBossFSMState::ExecutingAction;
 
@@ -366,6 +376,9 @@ void UBossFSMComponent::ActionFinished()
 	if (CurrentState == EBossFSMState::ExecutingAction)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Boss AI: Action Finished (By Anim Notify). Back to Idle."));
+
+		// 상태 초기화 함수 호출
+		BossOwner->BossActionEnd();
 
 		// 행동이 끝났으니 다시 대기(호흡) 상태로 돌아감
 		EnterIdleState();

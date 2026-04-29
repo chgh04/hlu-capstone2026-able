@@ -69,6 +69,9 @@ void ABossEnemyBase::HandleGroggyStateChange(bool bIsGroggy)
 			BossFSMComponent->SetGroggyState(true);
 		}
 
+		// 상태 초기화 함수 호출
+		BossActionEnd();
+
 		// 블루프린트에 알림
 		OnBossGroggyStarted();
 
@@ -128,4 +131,22 @@ void ABossEnemyBase::SetBossTarget()
 		FixedTargetPlayer = TargetPlayer;
 		UE_LOG(LogTemp, Warning, TEXT("Boss Target Locked: %s"), *FixedTargetPlayer->GetName());
 	}
+}
+
+void ABossEnemyBase::BossActionEnd()
+{
+	// 지면마찰력 재적용
+	if (MovementComp)
+	{
+		MovementComp->GroundFriction = SavedGroundFriction;
+	}
+	
+	// 공격 판정 한 번 더 제거(노티파이를 사용하지 않는 경우 여기서만 삭제함)
+	EndAttackCollision();
+
+	// 회피플래그 초기화
+	bIsDodging = false;
+
+	// 공격플래그 초기화
+	bIsAttacking = false;
 }
