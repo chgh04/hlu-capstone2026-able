@@ -36,7 +36,8 @@ Content/*
 !Content/LevelMesh/**
 
 # 맵 파일(Level)은 보통 용량이 크지만 필수이므로 포함
-!Content/Maps/*.umap
+!Content/Maps/
+!Content/Maps/**
 
 # [콘텐츠 관련]
 # BuiltData는 팀 규모와 라이팅 워크플로우에 따라 선택하세요.
