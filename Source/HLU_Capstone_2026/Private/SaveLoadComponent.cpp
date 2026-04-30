@@ -32,7 +32,7 @@ void USaveLoadComponent::SaveGame(FVector CheckpointLocation)
 
     // 플레이어 위치 - Z+200 오프셋으로 바닥 관통 방지
     FVector SaveLocation = CheckpointLocation;
-    SaveLocation.Z += 200.f;
+    //SaveLocation.Z += 200.f;
     SaveData->PlayerRespawnLocation = SaveLocation;
 
     // 체력/포션
@@ -83,7 +83,11 @@ void USaveLoadComponent::LoadGame()
     UInventoryComponent* IC = Player->FindComponentByClass<UInventoryComponent>();
 
     // 플레이어 상태 복원
-    Player->SetActorLocation(SaveData->PlayerRespawnLocation);
+    // 로드 시 Z축 강제 고정 - 2D 캐릭터 물리 고정값(100) 맞춤
+    FVector LoadLocation = SaveData->PlayerRespawnLocation;
+    LoadLocation.Z = 100.f;
+    Player->SetActorLocation(LoadLocation);
+    Player->SetCurrentRespawnLocation(LoadLocation);
     Player->SetCurrentRespawnLocation(SaveData->PlayerRespawnLocation);
     Player->SetCurrentPotionCount(SaveData->PlayerCurrentPotionCount);
 

@@ -8,7 +8,7 @@ public class HLU_Capstone_2026 : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "GameplayTags", "Paper2D", "PaperZD", "Niagara" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "GameplayTags", "Paper2D", "PaperZD", "Niagara", "UMG"});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
