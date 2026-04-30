@@ -347,43 +347,62 @@ void AEnemyBase::LaunchTowardsTarget(bool bIsSimpleLaunch, float SimpleLaunchZFo
     }
     // 적을 향해 도약하는 경우
     else
-    {
-        // 현재 높이를 최대높이에 반영
-        ArcHeight = StartLoc.Z + ArcHeight;
-
-        // 탄도학 계산 라이브러리
-        bool bSuccess = UGameplayStatics::SuggestProjectileVelocity_CustomArc(
-            this,
-            OutLaunchVelocity,   // 계산 결과가 담길 변수
-            StartLoc,           // 출발지
-            EndLoc,             // 목적지
-            MovementComp->GetGravityZ(),    // 현재 캐릭터의 중력값
-            ArcHeight           // 최고점 높이
-        );
-
-        if (bSuccess)
+    {   
+        // 너무 가까울 때 뒤로 넘어가는 현상 방지 
+        if (FVector::Dist2D(StartLoc, EndLoc) < 100.0f)
         {
-            // Y축 고정이 필요하다면 여기서 세팅
-            // OutLaunchVelocity.Y = {기존 캐릭터 y축 위치};
+            EndLoc = StartLoc + (GetActorForwardVector() * 150.0f);
+        }
 
-            // 플레이어를 바라보도록 전환
+        // 1. 안전한 최고점(Apex) 설정 (무조건 출발/도착점보다 높게)
+        float HighestPointZ = FMath::Max(StartLoc.Z, EndLoc.Z);
+        float AbsoluteApexZ = HighestPointZ + FMath::Max(ArcHeight, 100.0f);
+
+        // 2. 물리 계산을 위한 중력값 세팅 (계산을 위해 무조건 양수로 변환)
+        float Gravity = FMath::Abs(GetWorld()->GetGravityZ());
+        if (Gravity <= 0.0f) Gravity = 980.0f; // 기본 중력값 안전장치
+
+        // 3. 시작점과 도착점에서 최고점까지의 높이 차이
+        float HeightDiffStart = AbsoluteApexZ - StartLoc.Z;
+        float HeightDiffEnd = AbsoluteApexZ - EndLoc.Z;
+
+        // 4. 체공 시간(Total Time) 계산
+        float TimeToApex = FMath::Sqrt(2.0f * HeightDiffStart / Gravity);
+        float TimeToFall = FMath::Sqrt(2.0f * HeightDiffEnd / Gravity);
+        float TotalTime = TimeToApex + TimeToFall;
+
+        // 5. 발사 속도 조합
+        if (TotalTime > 0.0f)
+        {
+            FVector LaunchVelocity;
+
+            // 수평 속도 = 거리 / 시간
+            LaunchVelocity.X = (EndLoc.X - StartLoc.X) / TotalTime;
+
+            // 게임 환경에 맞게 Y축 깊이 이동 통제
+            LaunchVelocity.Y = 0.0f; 
+
+            // 수직 속도 = 루트(2 * 중력 * 상승할 높이)
+            LaunchVelocity.Z = FMath::Sqrt(2.0f * Gravity * HeightDiffStart);
+
+            // 플레이어를 바라보도록 회전
             FRotator LookRot = (EndLoc - StartLoc).Rotation();
             LookRot.Pitch = 0.0f; LookRot.Roll = 0.0f;
             SetActorRotation(LookRot);
 
-            if (!bLaunchReverse)
-            {
-                OutLaunchVelocity.X *= -1;
-            }
+            // 강제 도약
+            LaunchCharacter(LaunchVelocity, true, true);
 
-            // 계산 속도로 캐릭터 발사
-            LaunchCharacter(OutLaunchVelocity, true, true);
-
-            UE_LOG(LogTemp, Warning, TEXT("AI: Pounce Attack Launched with Velocity %s"), *OutLaunchVelocity.ToString());
+            UE_LOG(LogTemp, Warning, TEXT("AI: Manual Pounce Success! Time: %f, Vel: %s"), TotalTime, *LaunchVelocity.ToString());
         }
         else
         {
-            UE_LOG(LogTemp, Error, TEXT("AI: Launch Calculation Failed! (Target might be unreachable)"));
+            UE_LOG(LogTemp, Error, TEXT("AI: Launch Calculation Failed! (Target might be unreachable, StartLoc: %.2f, EndLoc: %.2f, Height = %.2f, TotalTime: %.2f)"), StartLoc.Z, EndLoc.Z, AbsoluteApexZ, TotalTime);
+            // 최후의 수단
+            FVector FallbackVelocity = (EndLoc - StartLoc).GetSafeNormal() * 800.0f;
+            FallbackVelocity.Z = 400.0f;
+            FallbackVelocity.Y = 0.0f;
+            LaunchCharacter(FallbackVelocity, true, true);
         }
     }
     

@@ -28,18 +28,34 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Interaction")
 	FOnInteractEndedSignature OnInteractEnded;
 
-	// InteractableBase 핵심 상호작용 함수 
+	// InteractableBase 핵심 상호작용 함수, 아이템/상호작용 오브젝트에 대한 상호작용 시작 
 	void HandleInteractInput(class APlayerBase* Player, FVector OriginCamSocketOffset);
+
+	// InteractableBase 핵심 상호작용 함수, 모든 상호작용 종료 
 	void CancelInteraction();
 
 	// 플레이어가 상호작용 범위 안에 들어왔을 때, 상호작용 가능한 아이템,상호작용 오브젝트 배열 관리
+	// NearbyInteractables 배열에 추가
 	void RegisterInteractable(AActor* Interactable);
+
+	// Interactable 배열에서 삭제
 	void UnregisterInteractable(AActor* Interactable);
+
+	// NearbyItems 배열에 추가 
 	void RegisterItem(AActor* Item);
+
+	// NearbyItems 배열에서 삭제 
 	void UnregisterItem(AActor* Item);
 
 	// 상태 반환
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Player_Interaction")
 	bool GetIsInteracting() const { return bIsInteracting; }
+
+	// 단순 상태 변화 함수 (이벤트시 플레이어 입력 제어용)
+	UFUNCTION(BlueprintCallable, Category = "Player_Interaction")
+	void SetIsInteracting(bool NewValue) { bIsInteracting = NewValue; }
+
+	// 마지막 휴식 체크포인트 저장
 	void SetRestingCheckpoint(AActor* Checkpoint) { CurrentRestingCheckpoint = Checkpoint; }
 
 private:
@@ -61,5 +77,4 @@ private:
 	// 댕글링 포인터 크래시 방지 - NearbyItems/NearbyInteractables 배열에 이미 삭제된 액터 포인터가 남아있어서 생기는 크래시
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-		
 };

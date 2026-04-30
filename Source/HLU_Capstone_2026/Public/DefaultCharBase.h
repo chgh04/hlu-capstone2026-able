@@ -315,6 +315,10 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Player/Enemy_Combat")
 	bool GetIsAttacking() { return bIsAttacking; }
 
+	// 공격 플래그 변경 함수
+	UFUNCTION(BlueprintCallable, Category = "Player/Enemy_Combat")
+	void SetIsAttacking(bool IsAttack) { bIsAttacking = IsAttack; }
+
 // VFX 및 오디오
 protected:
 	// 다이나믹 머티리얼 인스턴스를 저장하는 변수

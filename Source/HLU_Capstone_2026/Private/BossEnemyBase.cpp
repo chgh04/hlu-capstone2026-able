@@ -4,6 +4,7 @@
 #include "BossFSMComponent.h"
 #include "HealthComponent.h"
 #include "Components/BoxComponent.h"
+#include "PaperFlipbookComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 ABossEnemyBase::ABossEnemyBase()
@@ -116,6 +117,12 @@ void ABossEnemyBase::OnDeath_Implementation()
 	}
 
 	// 추후 효과 추가
+
+	// 플립북 컴포넌트에서 0번 슬롯 머티리얼 동적 생성 
+	if (FlipbookComp)
+	{
+		DissolveMaterial = FlipbookComp->CreateDynamicMaterialInstance(0);
+	}
 }
 
 void ABossEnemyBase::SetBossTarget()
