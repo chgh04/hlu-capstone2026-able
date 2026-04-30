@@ -172,6 +172,9 @@ void ADefaultCharBase::EndAttackState()
         //UE_LOG(LogTemp, Warning, TEXT("Default Char: Change GroundFriction to Normal"));
     }
 
+    // 공격 상태 한번 더 초기화
+    EndAttackCollision();
+
     // 마찬가지로 BP에서 오버라이드 해 별도 필요 기능을 구현할 수 있음
 }
 
@@ -377,7 +380,7 @@ bool ADefaultCharBase::GetHit(const FDamageData& DamageData)
                 }
 
                 // 0.2초 이후에 가드상태(지면 마찰력) 원래상태로 초기화
-                GetWorldTimerManager().SetTimer(GuardRecoilTimerHandle, this, &ADefaultCharBase::RestoreGuardState, 0.2f, false);
+                GetWorldTimerManager().SetTimer(GuardRecoilTimerHandle, this, &ADefaultCharBase::RestoreGuardState, 0.3f, false);
 
                 return false;
             }
@@ -459,8 +462,9 @@ void ADefaultCharBase::DodgeStart(float Time)
     // 회피 애니메이션 재생
     //PlayDodgeAnimation();
 
-    // 가드 성공 후의 넉백 타이머를 초기화
+    // 가드 성공 후의 넉백 타이머를 초기화(타이머 이후의 함수를 당장 호출)
     GetWorldTimerManager().ClearTimer(GuardRecoilTimerHandle);
+    RestoreGuardState();
 
     // 기존 회피 타이머가 있다면 강제 초기화
     GetWorldTimerManager().ClearTimer(DodgeTimerHandle);

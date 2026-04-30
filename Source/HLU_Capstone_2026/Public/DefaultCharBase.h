@@ -319,6 +319,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Player/Enemy_Combat")
 	void SetIsAttacking(bool IsAttack) { bIsAttacking = IsAttack; }
 
+	// 가드 성공 플래그 반환 함수
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Player/Enemy_Combat_Guard")
+	bool GetIsGuardSuccess() { return bIsGuardSuccess; }
+
 // VFX 및 오디오
 protected:
 	// 다이나믹 머티리얼 인스턴스를 저장하는 변수

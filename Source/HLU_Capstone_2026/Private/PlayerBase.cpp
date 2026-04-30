@@ -1163,7 +1163,9 @@ void APlayerBase::EndGuard()
 {
     Super::EndGuard();
 
-    // 가드가 성공했어도, 가드가 종료되어야 움직임 가능
+    StopAnimationOverride();
+
+    // 입력 잠금 해제
     bIsMoveLockedWhileGuarding = false;
 
     UE_LOG(LogTemp, Warning, TEXT("PlayerBase: EndGuardCalled!, bIsMoveLockedWhileGuarding is False"));
